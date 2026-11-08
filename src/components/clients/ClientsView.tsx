@@ -52,16 +52,21 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       if (d.type === 'invoice') {
         const total = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
         billed += total;
-        const invoicePaid = d.status === 'PAID' ? total : (d.advanceReceived || 0);
-        received += invoicePaid;
+        const hasLinkedReceipt = clientDocs.some(
+          (r) => r.type === 'receipt' && r.sourceInvoiceId === d.id
+        );
+        if (!hasLinkedReceipt) {
+          const invoicePaid = d.status === 'PAID' ? total : (d.advanceReceived || 0);
+          received += invoicePaid;
+        }
         pending += d.status === 'PAID' ? 0 : (d.balanceDue || 0);
       } else if (d.type === 'receipt') {
+        const amount = d.amountReceived || d.advanceReceived || 0;
         const isLinked = Boolean(d.sourceInvoiceId && clientDocs.some((inv) => inv.id === d.sourceInvoiceId));
         if (!isLinked) {
-          const amount = d.amountReceived || d.advanceReceived || 0;
           billed += d.totalProjectCost || amount;
-          received += amount;
         }
+        received += amount;
       }
     });
 
@@ -221,7 +226,12 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        if (confirm(`Delete client "${activeClient.name}"?`)) {
+                        const count = clientDocs.length;
+                        const msg =
+                          count > 0
+                            ? `Client "${activeClient.name}" has ${count} document(s) in history.\n\nDeleting this client will remove their profile from the Directory, but their billing documents will remain safe in History.\n\nDo you want to proceed?`
+                            : `Delete client "${activeClient.name}"?`;
+                        if (confirm(msg)) {
                           onDeleteClient(activeClient.id);
                         }
                       }}

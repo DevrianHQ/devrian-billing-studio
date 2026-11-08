@@ -137,6 +137,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   // Save handler
   const handleSave = useCallback(() => {
+    if (!doc.documentNumber || !doc.documentNumber.trim()) {
+      alert('Cannot save: Document number is required.');
+      return;
+    }
+    if (!doc.clientName || !doc.clientName.trim()) {
+      alert('Cannot save: Client name is required.');
+      return;
+    }
+
     const duplicateError = validationErrors.find((e) => e.includes('already in use'));
     if (duplicateError) {
       alert(`Cannot save: ${duplicateError}`);

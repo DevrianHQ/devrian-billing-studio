@@ -48,15 +48,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           if (d.type === 'invoice') {
             const invoiceTotal = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
             billedThisMonth += invoiceTotal;
-            const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
-            receivedThisMonth += invoicePaid;
+            const hasLinkedReceipt = documents.some(
+              (r) => r.type === 'receipt' && r.sourceInvoiceId === d.id
+            );
+            if (!hasLinkedReceipt) {
+              const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
+              receivedThisMonth += invoicePaid;
+            }
             pendingThisMonth += d.status === 'PAID' ? 0 : (d.balanceDue || 0);
           } else if (d.type === 'receipt') {
-            // Avoid double counting if this receipt is linked to an existing invoice
+            const amount = d.amountReceived ?? d.advanceReceived ?? 0;
             const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
             if (!isLinked) {
-              receivedThisMonth += d.amountReceived ?? d.advanceReceived ?? 0;
+              billedThisMonth += d.totalProjectCost || amount;
             }
+            // All receipts dated this month represent verified cash collections
+            receivedThisMonth += amount;
           }
         }
       } catch {
@@ -91,15 +98,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             if (d.type === 'invoice') {
               const invoiceTotal = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
               billed += invoiceTotal;
-              const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
-              received += invoicePaid;
+              const hasLinkedReceipt = documents.some(
+                (r) => r.type === 'receipt' && r.sourceInvoiceId === d.id
+              );
+              if (!hasLinkedReceipt) {
+                const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
+                received += invoicePaid;
+              }
             } else if (d.type === 'receipt') {
+              const amount = d.amountReceived ?? d.advanceReceived ?? 0;
               const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
               if (!isLinked) {
-                const amount = d.amountReceived ?? d.advanceReceived ?? 0;
                 billed += d.totalProjectCost || amount;
-                received += amount;
               }
+              received += amount;
             }
           }
         } catch {

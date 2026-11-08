@@ -29,6 +29,22 @@ export const App: React.FC = () => {
   const [documents, setDocuments] = useState<BillingDocument[]>(() => StorageService.getDocuments());
   const [clients, setClients] = useState<Client[]>(() => StorageService.getClients());
 
+  // Multi-tab synchronization: keep documents, clients, and profile in sync across browser tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (!e.key) return;
+      if (e.key === 'devrian_documents_v1') {
+        setDocuments(StorageService.getDocuments());
+      } else if (e.key === 'devrian_clients_v1') {
+        setClients(StorageService.getClients());
+      } else if (e.key === 'devrian_business_profile_v1') {
+        setProfile(StorageService.getProfile());
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Helper to create fresh document with full text snapshots and section visibility
   const createFreshDocument = useCallback(
     (type: DocumentType, baseData?: Partial<BillingDocument>): BillingDocument => {
@@ -346,10 +362,14 @@ export const App: React.FC = () => {
         amountReceived: amountReceived,
         balanceDue: balanceRemaining,
         notes: [
-          'GST is not applicable (not registered).',
-          `The remaining ₹${balanceRemaining.toLocaleString(
-            'en-IN'
-          )} is payable within 48 hours after project completion and approval, as per the project proposal.`,
+          invoiceDoc.gstEnabled
+            ? `GST @ ${invoiceDoc.gstRate}% included in project valuation (${invoiceDoc.gstType === 'CGST_SGST' ? 'CGST + SGST' : 'IGST'}).`
+            : 'GST is not applicable (not registered).',
+          balanceRemaining > 0
+            ? `The remaining ₹${balanceRemaining.toLocaleString(
+                'en-IN'
+              )} is payable within 48 hours after project completion and approval, as per the project proposal.`
+            : 'Full project payment received in advance. No balance due.',
         ],
         closingLine: profile.receiptClosingTemplate,
         createdAt: new Date().toISOString(),
