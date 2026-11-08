@@ -1,6 +1,6 @@
 export const DRIVE_SYNC_SCRIPT_TEMPLATE = `/**
- * DEVRIAN BILLING STUDIO - ADVANCED GOOGLE DRIVE SYNC SCRIPT
- * ==========================================================
+ * DEVRIAN BILLING STUDIO - EXACT AGENCY FOLDER SYNC SCRIPT
+ * ========================================================
  * Target Account: neelamrajput658@gmail.com
  *
  * EXACT FOLDER HIERARCHY:
@@ -10,11 +10,11 @@ export const DRIVE_SYNC_SCRIPT_TEMPLATE = `/**
  *         │    └── 📄 devrian_database.json (All studio data, dashboard, profile, clients)
  *         │
  *         └── 📁 CLIENTS
- *              └── 📁 [Client Name] (e.g. "Anshita Singh Parihar")
- *                   └── 📁 PAYMENTS
- *                        ├── 📁 INVOICES               (Client Invoice PDFs)
- *                        ├── 📁 RECEIPTS               (Client Receipt PDFs)
- *                        └── 📁 PROPOSALS & QUOTATIONS (Client Proposals / Quotations)
+ *              └── 📁 [Client Name] (Automatic for every client)
+ *                   └── 📁 PAYMENT
+ *                        ├── 📁 INVOICE
+ *                        ├── 📁 RECEIPT
+ *                        └── 📁 PROPOSAL & QUOTATION
  *
  * 🔒 SECURITY: Protected by private SYNC_SECURITY_PIN matching Studio Settings.
  */
@@ -47,25 +47,70 @@ function doPost(e) {
     var rootAgency = getOrCreateFolder("DEVRIAN AGENCY");
     var privateFolder = getOrCreateSubFolder(rootAgency, "PRIVATE");
     var docsFolder = getOrCreateSubFolder(privateFolder, "DOCS");
-    var clientsRootFolder = getOrCreateSubFolder(privateFolder, "CLIENTS");
+    var clientsFolder = getOrCreateSubFolder(privateFolder, "CLIENTS");
+
+    // Helper to auto-create client template structure
+    function setupClientFolders(cName) {
+      if (!cName || !cName.trim() || cName.trim().toLowerCase() === "client name") {
+        cName = "General Client";
+      }
+      var cFolder = getOrCreateSubFolder(clientsFolder, cName.trim());
+      var payFolder = getOrCreateSubFolder(cFolder, "PAYMENT");
+      var invFolder = getOrCreateSubFolder(payFolder, "INVOICE");
+      var recFolder = getOrCreateSubFolder(payFolder, "RECEIPT");
+      var propFolder = getOrCreateSubFolder(payFolder, "PROPOSAL & QUOTATION");
+
+      return {
+        clientFolder: cFolder,
+        paymentFolder: payFolder,
+        invoiceFolder: invFolder,
+        receiptFolder: recFolder,
+        proposalFolder: propFolder
+      };
+    }
 
     // 1. Connection Ping Test
     if (action === "ping") {
       return jsonResponse({
         success: true,
-        message: "Connected to Google Drive successfully! Structure: DEVRIAN AGENCY / PRIVATE / (DOCS + CLIENTS)",
+        message: "Connected to Google Drive! Structure: DEVRIAN AGENCY / PRIVATE / (DOCS + CLIENTS)",
+        structure: "DEVRIAN AGENCY / PRIVATE / (DOCS + CLIENTS / [Client] / PAYMENT / (INVOICE, RECEIPT, PROPOSAL & QUOTATION))",
         email: Session.getActiveUser().getEmail() || "Authorized User"
       });
     }
 
-    // 2. Sync Full Database (Clients, Documents, Profile, Dashboard) -> Saved in PRIVATE/DOCS
+    // 2. Sync Full Database -> Saved in PRIVATE/DOCS + Auto-creates folder templates for all clients!
     if (action === "syncDatabase") {
       var dbFile = getOrCreateFile(docsFolder, "devrian_database.json", "application/json");
       dbFile.setContent(JSON.stringify(data.payload, null, 2));
+
+      // Auto-create folder tree for every client in the database
+      var createdClients = [];
+      if (data.payload && data.payload.clients && data.payload.clients.length > 0) {
+        for (var i = 0; i < data.payload.clients.length; i++) {
+          var cl = data.payload.clients[i];
+          if (cl && cl.name) {
+            setupClientFolders(cl.name);
+            createdClients.push(cl.name);
+          }
+        }
+      }
+
+      // Also check documents for client names
+      if (data.payload && data.payload.documents && data.payload.documents.length > 0) {
+        for (var j = 0; j < data.payload.documents.length; j++) {
+          var doc = data.payload.documents[j];
+          if (doc && doc.clientName) {
+            setupClientFolders(doc.clientName);
+          }
+        }
+      }
+
       return jsonResponse({
         success: true,
-        message: "Database synced successfully to DEVRIAN AGENCY/PRIVATE/DOCS",
-        updatedAt: new Date().toISOString()
+        message: "Database synced to DEVRIAN AGENCY/PRIVATE/DOCS and all client folder templates created!",
+        updatedAt: new Date().toISOString(),
+        clientsConfigured: createdClients
       });
     }
 
@@ -88,7 +133,7 @@ function doPost(e) {
       }
     }
 
-    // 4. Upload PDF File -> Saved in PRIVATE/CLIENTS/[Client Name]/PAYMENTS/(INVOICES | RECEIPTS | PROPOSALS & QUOTATIONS)
+    // 4. Upload PDF File -> Saved in PRIVATE/CLIENTS/[Client Name]/PAYMENT/(INVOICE | RECEIPT | PROPOSAL & QUOTATION)
     if (action === "uploadPdf") {
       var clientName = (data.clientName || "General Client").trim();
       var docType = (data.docType || "invoice").toLowerCase();
@@ -99,31 +144,24 @@ function doPost(e) {
         return jsonResponse({ success: false, error: "No PDF data provided" });
       }
 
-      // Strip data URL scheme prefix if included
       if (base64Data.indexOf(",") > -1) {
         base64Data = base64Data.split(",")[1];
       }
 
-      // Navigate / Auto-create client hierarchy
-      var clientFolder = getOrCreateSubFolder(clientsRootFolder, clientName);
-      var paymentsFolder = getOrCreateSubFolder(clientFolder, "PAYMENTS");
-
-      var invoicesFolder = getOrCreateSubFolder(paymentsFolder, "INVOICES");
-      var receiptsFolder = getOrCreateSubFolder(paymentsFolder, "RECEIPTS");
-      var proposalsFolder = getOrCreateSubFolder(paymentsFolder, "PROPOSALS & QUOTATIONS");
-
+      // Create / Navigate client folder hierarchy
+      var clientFolders = setupClientFolders(clientName);
       var targetFolder;
       var targetFolderName;
 
       if (docType === "receipt") {
-        targetFolder = receiptsFolder;
-        targetFolderName = "RECEIPTS";
+        targetFolder = clientFolders.receiptFolder;
+        targetFolderName = "RECEIPT";
       } else if (docType === "quotation" || docType === "proposal") {
-        targetFolder = proposalsFolder;
-        targetFolderName = "PROPOSALS & QUOTATIONS";
+        targetFolder = clientFolders.proposalFolder;
+        targetFolderName = "PROPOSAL & QUOTATION";
       } else {
-        targetFolder = invoicesFolder;
-        targetFolderName = "INVOICES";
+        targetFolder = clientFolders.invoiceFolder;
+        targetFolderName = "INVOICE";
       }
 
       var decodedBytes = Utilities.base64Decode(base64Data);
@@ -138,7 +176,7 @@ function doPost(e) {
         targetFolder.createFile(pdfBlob);
       }
 
-      var drivePath = "DEVRIAN AGENCY / PRIVATE / CLIENTS / " + clientName + " / PAYMENTS / " + targetFolderName + " / " + fileName;
+      var drivePath = "DEVRIAN AGENCY / PRIVATE / CLIENTS / " + clientName + " / PAYMENT / " + targetFolderName + " / " + fileName;
 
       return jsonResponse({
         success: true,
@@ -156,9 +194,9 @@ function doPost(e) {
 function doGet(e) {
   return jsonResponse({
     status: "active",
-    service: "DEVRIAN Billing Studio - Advanced Agency Drive Sync",
+    service: "DEVRIAN Billing Studio - Exact Agency Drive Sync",
     security: "PIN Protected",
-    structure: "DEVRIAN AGENCY / PRIVATE / (DOCS + CLIENTS / [Client] / PAYMENTS)",
+    structure: "DEVRIAN AGENCY / PRIVATE / (DOCS + CLIENTS / [Client] / PAYMENT / (INVOICE, RECEIPT, PROPOSAL & QUOTATION))",
     timestamp: new Date().toISOString()
   });
 }
