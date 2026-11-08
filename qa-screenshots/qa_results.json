@@ -1,0 +1,53 @@
+[
+  {
+    "test": "Receipt 1-Page Screenshot",
+    "status": "PASS"
+  },
+  {
+    "test": "Invoice 1-Page Screenshot",
+    "status": "PASS"
+  },
+  {
+    "test": "Invoice Multi-Page Pagination",
+    "status": "PASS",
+    "details": {
+      "count": 2,
+      "hasPage2Header": true,
+      "pageNumbers": [
+        true,
+        true
+      ]
+    }
+  },
+  {
+    "test": "Signature Studio Modal",
+    "status": "PASS"
+  },
+  {
+    "test": "Settings Branding View",
+    "status": "PASS"
+  },
+  {
+    "test": "Mobile Responsive Preview (375px)",
+    "status": "PASS"
+  },
+  {
+    "test": "PDF Page Size (Exact A4 210x297mm)",
+    "status": "PASS",
+    "details": "595x842 pt"
+  },
+  {
+    "test": "PDF Metadata (Title, Author, Creator)",
+    "status": "PASS",
+    "details": {
+      "title": "DEVRIAN Invoice DEV-2026-001",
+      "author": "DEVRIAN",
+      "creator": "DEVRIAN Billing Studio"
+    }
+  },
+  {
+    "test": "PDF File Size (< 2MB)",
+    "status": "PASS",
+    "details": "234 KB"
+  }
+]

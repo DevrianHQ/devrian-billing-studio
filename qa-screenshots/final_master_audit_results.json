@@ -1,0 +1,31 @@
+{
+  "documentTypes": {
+    "hasInvoice": true,
+    "hasReceipt": true,
+    "hasQuotation": true
+  },
+  "proprietorCheck": {
+    "hasRajpoot": true,
+    "hasRajput": false
+  },
+  "contactCheck": {
+    "hasInquiry": true,
+    "hasWebsite": true,
+    "hasHello": false
+  },
+  "bottomMetaCheck": {
+    "hasDocNo": true,
+    "hasDate": true
+  },
+  "multiPageCheck": {
+    "pagesBefore": 1
+  },
+  "navCheck": {
+    "hasHistory": true,
+    "hasClients": true,
+    "hasDashboard": true,
+    "hasSettings": true,
+    "hasCreate": true
+  },
+  "pdfImageGenerated": true
+}
