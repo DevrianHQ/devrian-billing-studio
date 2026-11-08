@@ -228,28 +228,32 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       });
 
       onSaveDocument(doc);
-      setSaveToast('PDF downloaded successfully');
-      setTimeout(() => setSaveToast(null), 2500);
 
       // Auto-upload PDF and sync database to Google Drive if configured
       const driveConfig = GoogleDriveSyncService.getConfig();
-      if (driveConfig.url && driveConfig.autoSync) {
-        (async () => {
-          try {
-            if (exportResult?.pdfBase64) {
-              await GoogleDriveSyncService.uploadPdf(
-                doc.type === 'receipt' ? 'receipt' : 'invoice',
-                fileName,
-                exportResult.pdfBase64,
-                doc.clientName || 'General Client'
-              );
-            }
-            await GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true));
-          } catch (e) {
-            console.warn('Background Google Drive upload notice:', e);
+      if (driveConfig.url && driveConfig.autoSync && exportResult?.pdfBase64) {
+        setExportMessage('Uploading PDF to Google Drive client folder...');
+        try {
+          const uploadRes = await GoogleDriveSyncService.uploadPdf(
+            doc.type === 'receipt' ? 'receipt' : 'invoice',
+            fileName,
+            exportResult.pdfBase64,
+            doc.clientName || 'General Client'
+          );
+          await GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true));
+          if (uploadRes.success) {
+            setSaveToast('✓ PDF downloaded & uploaded to Google Drive folder successfully!');
+          } else {
+            setSaveToast(`PDF downloaded locally (${uploadRes.message || 'Drive upload failed'})`);
           }
-        })();
+        } catch (e: any) {
+          console.warn('Google Drive upload notice:', e);
+          setSaveToast(`PDF downloaded locally (Drive notice: ${e.message})`);
+        }
+      } else {
+        setSaveToast('PDF downloaded successfully');
       }
+      setTimeout(() => setSaveToast(null), 3500);
     } catch (err: any) {
       console.error('PDF generation error:', err);
       alert(`Error generating PDF: ${err.message || err}`);

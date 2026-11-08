@@ -191,6 +191,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (result.success) {
       setDriveTestStatus({ status: 'success', message: result.message });
       GoogleDriveSyncService.saveConfig(driveConfig.url, driveConfig.autoSync, driveConfig.secretPin);
+      // Auto-push master database to create folders right away on successful connection
+      const backupData = StorageService.exportFullBackup(includeSigInBackup);
+      GoogleDriveSyncService.syncDatabase(backupData, driveConfig.url, driveConfig.secretPin).catch(console.warn);
     } else {
       setDriveTestStatus({ status: 'error', message: result.message });
     }
@@ -516,6 +519,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {drivePulling ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                 <span>{drivePulling ? 'Restoring...' : 'Restore from Drive'}</span>
               </button>
+
+              <a
+                href="https://drive.google.com/drive/search?q=DEVRIAN%20AGENCY"
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1.5 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-700/50 transition"
+                title="Opens DEVRIAN AGENCY folder in Google Drive in a new tab"
+              >
+                <ExternalLink size={13} className="text-emerald-400" />
+                <span>Open in Drive</span>
+              </a>
             </div>
           </div>
 
