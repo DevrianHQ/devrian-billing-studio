@@ -17,13 +17,15 @@ export interface DriveSyncConfig {
 export const GoogleDriveSyncService = {
   getConfig(): DriveSyncConfig {
     let savedUrl = (localStorage.getItem(STORAGE_KEYS.GDRIVE_URL) || '').trim();
-    // Auto-migrate from expired / deleted deployment URL to the active working deployment
+    const verifiedWorkingUrl =
+      'https://script.google.com/macros/s/AKfycbzO7No5np9yC1Y-i1XAIv8wqAhsrQpRd0A-bWOVS3gCLsVdm33NEB_eDM7-b0x47Ezw/exec';
+    // Auto-migrate from expired / older deployment URLs to the verified agency hierarchy deployment
     if (
       !savedUrl ||
-      savedUrl.includes('AKfycbxrsZtzbhza9SZ7eJmiDc25V3S4YHtGvD01Rm0i3R8sChLQEmP_ggMXFmHQIy6KSkE')
+      savedUrl.includes('AKfycbxrsZtzbhza9SZ7eJmiDc25V3S4YHtGvD01Rm0i3R8sChLQEmP_ggMXFmHQIy6KSkE') ||
+      savedUrl.includes('AKfycbwfaJPh5Dj8gi0Lq3l5k5zzjnE3SnR-a3vFFd9FO2S2rxaj4I78_v0ZCKkC7t1YoAIe')
     ) {
-      savedUrl =
-        'https://script.google.com/macros/s/AKfycbwfaJPh5Dj8gi0Lq3l5k5zzjnE3SnR-a3vFFd9FO2S2rxaj4I78_v0ZCKkC7t1YoAIe/exec';
+      savedUrl = verifiedWorkingUrl;
       localStorage.setItem(STORAGE_KEYS.GDRIVE_URL, savedUrl);
     }
     return {
