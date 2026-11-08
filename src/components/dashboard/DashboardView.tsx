@@ -48,10 +48,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           if (d.type === 'invoice') {
             const invoiceTotal = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
             billedThisMonth += invoiceTotal;
-            receivedThisMonth += d.advanceReceived || 0;
-            pendingThisMonth += d.balanceDue || 0;
+            const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
+            receivedThisMonth += invoicePaid;
+            pendingThisMonth += d.status === 'PAID' ? 0 : (d.balanceDue || 0);
           } else if (d.type === 'receipt') {
-            receivedThisMonth += d.amountReceived ?? d.advanceReceived ?? 0;
+            // Avoid double counting if this receipt is linked to an existing invoice
+            const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
+            if (!isLinked) {
+              receivedThisMonth += d.amountReceived ?? d.advanceReceived ?? 0;
+            }
           }
         }
       } catch {
@@ -86,9 +91,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             if (d.type === 'invoice') {
               const invoiceTotal = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
               billed += invoiceTotal;
-              received += d.advanceReceived || 0;
+              const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
+              received += invoicePaid;
             } else if (d.type === 'receipt') {
-              received += d.amountReceived ?? d.advanceReceived ?? 0;
+              const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
+              if (!isLinked) {
+                received += d.amountReceived ?? d.advanceReceived ?? 0;
+              }
             }
           }
         } catch {

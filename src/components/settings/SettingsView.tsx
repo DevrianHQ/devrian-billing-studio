@@ -59,9 +59,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [drivePulling, setDrivePulling] = useState(false);
   const [showDriveGuide, setShowDriveGuide] = useState(false);
   const [scriptCopied, setScriptCopied] = useState(false);
+  const isInternalChangeRef = useRef(false);
 
-  // Synchronize local form data if profile prop changes
+  // Synchronize local form data if profile prop changes from external source (e.g. restore)
   useEffect(() => {
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
+      return;
+    }
     setFormData(profile);
   }, [profile]);
 
@@ -71,6 +76,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
   const updateField = <K extends keyof BusinessProfile>(field: K, value: BusinessProfile[K]) => {
+    isInternalChangeRef.current = true;
     setFormData((prev) => {
       const next = { ...prev, [field]: value };
       onSaveProfile(next);

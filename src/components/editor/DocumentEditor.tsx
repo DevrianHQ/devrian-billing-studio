@@ -254,7 +254,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     // Check if an existing document of this type exists in list
     const existing = existingDocs.find((d) => d.type === newType);
     if (existing) {
-      setDoc(existing);
+      handleUpdateDoc(existing);
       return;
     }
 
@@ -292,7 +292,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           : business.invoiceClosingTemplate,
     };
 
-    setDoc(updated);
+    handleUpdateDoc(updated);
   };
 
   // Keyboard shortcuts (Ctrl+S, Ctrl+P)

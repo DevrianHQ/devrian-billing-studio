@@ -52,10 +52,14 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       if (d.type === 'invoice') {
         const total = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
         billed += total;
-        received += d.advanceReceived || 0;
-        pending += d.balanceDue || 0;
+        const invoicePaid = d.status === 'PAID' ? total : (d.advanceReceived || 0);
+        received += invoicePaid;
+        pending += d.status === 'PAID' ? 0 : (d.balanceDue || 0);
       } else if (d.type === 'receipt') {
-        received += d.amountReceived || d.advanceReceived || 0;
+        const isLinked = Boolean(d.sourceInvoiceId && clientDocs.some((inv) => inv.id === d.sourceInvoiceId));
+        if (!isLinked) {
+          received += d.amountReceived || d.advanceReceived || 0;
+        }
       }
     });
 

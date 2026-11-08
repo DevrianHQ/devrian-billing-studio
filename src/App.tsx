@@ -170,15 +170,14 @@ export const App: React.FC = () => {
 
   // Save Document
   const handleSaveDocument = useCallback((doc: BillingDocument) => {
-    const updatedList = StorageService.saveDocument(doc);
-    setDocuments(updatedList);
-    setActiveDoc(doc);
+    let docToSave = { ...doc };
 
-    // Auto-save client if client name provided
-    if (doc.clientName && doc.clientName.trim()) {
+    // Auto-save client if legitimate client name provided
+    const cleanClientName = (doc.clientName || '').trim();
+    if (cleanClientName && cleanClientName.toLowerCase() !== 'client name') {
       const savedClient = StorageService.saveOrUpdateClient({
         id: doc.clientId,
-        name: doc.clientName.trim(),
+        name: cleanClientName,
         contactPerson: doc.clientContactPerson,
         address: doc.clientAddress,
         phone: doc.clientPhone,
@@ -186,10 +185,12 @@ export const App: React.FC = () => {
         gstin: doc.clientGstin,
       });
       setClients(StorageService.getClients());
-      if (!doc.clientId) {
-        doc.clientId = savedClient.id;
-      }
+      docToSave.clientId = savedClient.id;
     }
+
+    const updatedList = StorageService.saveDocument(docToSave);
+    setDocuments(updatedList);
+    setActiveDoc(docToSave);
   }, []);
 
   // New Document
