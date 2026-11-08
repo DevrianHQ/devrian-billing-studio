@@ -225,7 +225,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               await GoogleDriveSyncService.uploadPdf(
                 doc.type === 'receipt' ? 'receipt' : 'invoice',
                 fileName,
-                exportResult.pdfBase64
+                exportResult.pdfBase64,
+                doc.clientName || 'General Client'
               );
             }
             await GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true));

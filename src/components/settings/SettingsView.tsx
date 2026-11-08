@@ -341,7 +341,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 )}
               </div>
               <p className="text-xs text-neutral-400 mt-0.5">
-                Target Account: <span className="text-neutral-200 font-medium">neelamrajput658@gmail.com</span> · Auto-creates folders: <code className="text-neutral-300">Invoices/</code>, <code className="text-neutral-300">Receipts/</code>, <code className="text-neutral-300">devrian_database.json</code>
+                Target Account: <span className="text-neutral-200 font-medium">neelamrajput658@gmail.com</span> · Auto-creates: <code className="text-neutral-300">DEVRIAN AGENCY / PRIVATE / (DOCS + CLIENTS / [Client] / PAYMENTS)</code>
               </p>
             </div>
           </div>

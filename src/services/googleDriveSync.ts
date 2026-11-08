@@ -167,15 +167,16 @@ export const GoogleDriveSyncService = {
   },
 
   /**
-   * Upload an exported PDF file directly into Invoices or Receipts folder on Google Drive
+   * Upload an exported PDF file directly into Client's folder on Google Drive
    */
   async uploadPdf(
-    docType: 'invoice' | 'receipt',
+    docType: 'invoice' | 'receipt' | 'quotation',
     fileName: string,
     pdfBase64: string,
+    clientName?: string,
     scriptUrl?: string,
     secretPin?: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<{ success: boolean; message: string; path?: string }> {
     const config = this.getConfig();
     const targetUrl = (scriptUrl || config.url).trim();
     const pin = (secretPin !== undefined ? secretPin : config.secretPin).trim();
@@ -193,6 +194,7 @@ export const GoogleDriveSyncService = {
         body: JSON.stringify({
           action: 'uploadPdf',
           secretPin: pin,
+          clientName: (clientName || 'General Client').trim(),
           docType,
           fileName,
           base64Pdf: pdfBase64,
@@ -205,7 +207,11 @@ export const GoogleDriveSyncService = {
 
       const json = await res.json();
       if (json && json.success) {
-        return { success: true, message: json.message || `Uploaded ${fileName} to Drive.` };
+        return {
+          success: true,
+          message: json.message || `Uploaded ${fileName} to Drive.`,
+          path: json.path,
+        };
       }
       return { success: false, message: json.error || 'Failed to upload PDF to Drive.' };
     } catch (err: any) {
