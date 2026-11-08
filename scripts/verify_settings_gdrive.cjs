@@ -49,31 +49,41 @@ setTimeout(() => {
             awaitPromise: true
           });
 
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise(r => setTimeout(r, 600));
+
+          // Set localStorage URL to the new working URL and trigger Test Connection
+          await send('Runtime.evaluate', {
+            expression: `(() => {
+              localStorage.setItem('devrian_gdrive_sync_url_v1', 'https://script.google.com/macros/s/AKfycbwfaJPh5Dj8gi0Lq3l5k5zzjnE3SnR-a3vFFd9FO2S2rxaj4I78_v0ZCKkC7t1YoAIe/exec');
+              localStorage.setItem('devrian_gdrive_secret_pin_v1', 'DEVRIAN@2026');
+              localStorage.setItem('devrian_gdrive_auto_sync_v1', 'true');
+              
+              // Find test connection button and click it
+              const testBtn = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('Test Connection'));
+              if (testBtn) testBtn.click();
+            })()`,
+            awaitPromise: true
+          });
+
+          // Wait for Google Apps Script to respond
+          await new Promise(r => setTimeout(r, 3500));
 
           // Capture Screenshot
           const shot = await send('Page.captureScreenshot', { format: 'png' });
-          const outDir = 'C:\\Users\\neela\\.gemini\\antigravity\\brain\\3cb6c773-e8f4-4eeb-838f-e2da43f8b827\\qa-screenshots';
+          const outDir = 'C:\\Users\\neela\\.gemini\antigravity\\brain\\3cb6c773-e8f4-4eeb-838f-e2da43f8b827\\qa-screenshots';
           if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-          const outPath = path.join(outDir, 'settings_gdrive_sync.png');
+          const outPath = path.join(outDir, 'settings_gdrive_connected.png');
           fs.writeFileSync(outPath, Buffer.from(shot.data, 'base64'));
-          console.log('Saved screenshot to:', outPath);
+          console.log('Saved connected screenshot to:', outPath);
 
-          // Check if Google Drive section text exists
-          const evalRes = await send('Runtime.evaluate', {
+          const resultText = await send('Runtime.evaluate', {
             expression: `(() => {
-              const bodyText = document.body.innerText;
-              return {
-                hasGDriveHeading: bodyText.includes('Google Drive Cloud Sync & Auto-Backup'),
-                hasAccount: bodyText.includes('neelamrajput658@gmail.com'),
-                hasTestButton: bodyText.includes('Test Connection'),
-                hasSyncButton: bodyText.includes('Sync to Drive Now')
-              };
+              return document.body.innerText;
             })()`,
             returnByValue: true
           });
 
-          console.log('Verification checks:', evalRes.result.value);
+          console.log('Has Connected Message:', resultText.result.value.includes('Connected to Google Drive successfully'));
         } catch (err) {
           console.error('Error during test:', err);
         } finally {
@@ -85,4 +95,3 @@ setTimeout(() => {
     });
   });
 }, 1500);
-

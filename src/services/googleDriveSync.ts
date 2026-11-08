@@ -17,9 +17,11 @@ export interface DriveSyncConfig {
 export const GoogleDriveSyncService = {
   getConfig(): DriveSyncConfig {
     return {
-      url: localStorage.getItem(STORAGE_KEYS.GDRIVE_URL) || '',
+      url:
+        localStorage.getItem(STORAGE_KEYS.GDRIVE_URL) ||
+        'https://script.google.com/macros/s/AKfycbwfaJPh5Dj8gi0Lq3l5k5zzjnE3SnR-a3vFFd9FO2S2rxaj4I78_v0ZCKkC7t1YoAIe/exec',
       secretPin: localStorage.getItem(STORAGE_KEYS.GDRIVE_PIN) ?? 'DEVRIAN@2026',
-      autoSync: localStorage.getItem(STORAGE_KEYS.GDRIVE_AUTO_SYNC) === 'true',
+      autoSync: localStorage.getItem(STORAGE_KEYS.GDRIVE_AUTO_SYNC) !== 'false',
       lastSyncedAt: localStorage.getItem(STORAGE_KEYS.GDRIVE_LAST_SYNC),
     };
   },
