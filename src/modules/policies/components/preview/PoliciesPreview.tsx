@@ -3,6 +3,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Minimize2,
   FileDown,
   Printer,
   Layers,
@@ -23,6 +24,8 @@ interface PoliciesPreviewProps {
   versions: DocumentVersion[];
   logoUrl: string;
   signatureUrl: string;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
   onSave?: () => void;
 }
 
@@ -33,6 +36,8 @@ export const PoliciesPreview: React.FC<PoliciesPreviewProps> = ({
   versions,
   logoUrl,
   signatureUrl,
+  isFullscreen = false,
+  onToggleFullscreen,
   onSave,
 }) => {
   const [docView, setDocView] = useState<'full' | 'summary' | 'individual'>('full');
@@ -94,7 +99,7 @@ export const PoliciesPreview: React.FC<PoliciesPreviewProps> = ({
       const elementsToExport =
         pageElements.length > 0 ? pageElements : [printablePagesRef.current];
 
-      let fileName = `DEVRIAN_Terms_and_Conditions_v${settings.currentVersion}.pdf`;
+      let fileName = `DEVRIAN_Terms_and_Conditions_and_Policies_v${settings.currentVersion}.pdf`;
       if (docView === 'summary') {
         fileName = `DEVRIAN_Policy_Summary_v${settings.currentVersion}.pdf`;
       } else if (docView === 'individual') {
@@ -126,7 +131,7 @@ export const PoliciesPreview: React.FC<PoliciesPreviewProps> = ({
             }`}
           >
             <Layers size={13} />
-            <span>Master T&amp;C (5p)</span>
+            <span>Terms &amp; Policies (6p)</span>
           </button>
 
           <button
@@ -203,6 +208,22 @@ export const PoliciesPreview: React.FC<PoliciesPreviewProps> = ({
               <Maximize2 size={13} />
             </button>
           </div>
+
+          {/* Toggle Fullscreen / Preview Only Mode */}
+          {onToggleFullscreen && (
+            <button
+              type="button"
+              onClick={onToggleFullscreen}
+              className={`p-1.5 rounded-lg border transition ${
+                isFullscreen
+                  ? 'bg-neutral-800 text-white border-neutral-700'
+                  : 'bg-neutral-900 text-neutral-400 hover:text-white border-neutral-800'
+              }`}
+              title={isFullscreen ? 'Exit Preview Only Mode (Return to Split)' : 'Enter Preview Only Mode (Hide Editor)'}
+            >
+              {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+          )}
 
           {/* Export PDF Button */}
           <button

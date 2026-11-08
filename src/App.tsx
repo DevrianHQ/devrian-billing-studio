@@ -26,7 +26,48 @@ import { SettingsView } from './components/settings/SettingsView';
 const PoliciesModule = React.lazy(() => import('./modules/policies/PoliciesModule'));
 
 export const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<AppPage>('create');
+  const getInitialPage = (): AppPage => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+      const validPages: AppPage[] = ['create', 'history', 'clients', 'dashboard', 'settings', 'policies'];
+      if (validPages.includes(hash as AppPage)) {
+        return hash as AppPage;
+      }
+      const saved = localStorage.getItem('devrian_active_page_v1');
+      if (saved && validPages.includes(saved as AppPage)) {
+        return saved as AppPage;
+      }
+    }
+    return 'create';
+  };
+
+  const [currentPage, setCurrentPage] = useState<AppPage>(getInitialPage);
+
+  const handleNavigate = useCallback((page: AppPage) => {
+    setCurrentPage(page);
+    if (typeof window !== 'undefined') {
+      window.location.hash = `#/${page}`;
+      localStorage.setItem('devrian_active_page_v1', page);
+    }
+  }, []);
+
+  // Sync hash change across browser navigation (back/forward)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+      const validPages: AppPage[] = ['create', 'history', 'clients', 'dashboard', 'settings', 'policies'];
+      if (validPages.includes(hash as AppPage)) {
+        setCurrentPage(hash as AppPage);
+        localStorage.setItem('devrian_active_page_v1', hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    if (typeof window !== 'undefined' && !window.location.hash) {
+      window.location.hash = `#/${currentPage}`;
+    }
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [currentPage]);
+
   const [profile, setProfile] = useState<BusinessProfile>(() => StorageService.getProfile());
   const [documents, setDocuments] = useState<BillingDocument[]>(() => StorageService.getDocuments());
   const [clients, setClients] = useState<Client[]>(() => StorageService.getClients());
@@ -216,9 +257,9 @@ export const App: React.FC = () => {
     (type: DocumentType) => {
       const fresh = createFreshDocument(type);
       setActiveDoc(fresh);
-      setCurrentPage('create');
+      handleNavigate('create');
     },
-    [createFreshDocument]
+    [createFreshDocument, handleNavigate]
   );
 
   // Duplicate Document
@@ -244,9 +285,9 @@ export const App: React.FC = () => {
       };
       handleSaveDocument(duplicated);
       setActiveDoc(duplicated);
-      setCurrentPage('create');
+      handleNavigate('create');
     },
-    [profile, documents, handleSaveDocument]
+    [profile, documents, handleSaveDocument, handleNavigate]
   );
 
   // Delete Document
@@ -308,9 +349,9 @@ export const App: React.FC = () => {
 
       handleSaveDocument(invoiceDoc);
       setActiveDoc(invoiceDoc);
-      setCurrentPage('create');
+      handleNavigate('create');
     },
-    [documents, profile, handleSaveDocument]
+    [documents, profile, handleSaveDocument, handleNavigate]
   );
 
   // Generate Receipt from Invoice
@@ -380,9 +421,9 @@ export const App: React.FC = () => {
 
       handleSaveDocument(receiptDoc);
       setActiveDoc(receiptDoc);
-      setCurrentPage('create');
+      handleNavigate('create');
     },
-    [documents, profile, handleSaveDocument]
+    [documents, profile, handleSaveDocument, handleNavigate]
   );
 
   // Business signature updates
@@ -499,7 +540,7 @@ export const App: React.FC = () => {
       {/* Universal Top Navigation */}
       <Navbar
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={handleNavigate}
         business={profile}
         docCount={documents.length}
       />
@@ -529,7 +570,7 @@ export const App: React.FC = () => {
               business={profile}
               onEditDocument={(d) => {
                 setActiveDoc(d);
-                setCurrentPage('create');
+                handleNavigate('create');
               }}
               onDuplicateDocument={handleDuplicateDocument}
               onDeleteDocument={handleDeleteDocument}
@@ -548,7 +589,7 @@ export const App: React.FC = () => {
               onDeleteClient={handleDeleteClient}
               onSelectDocument={(d) => {
                 setActiveDoc(d);
-                setCurrentPage('create');
+                handleNavigate('create');
               }}
             />
           </div>
@@ -560,9 +601,9 @@ export const App: React.FC = () => {
               documents={documents}
               onOpenDocument={(d) => {
                 setActiveDoc(d);
-                setCurrentPage('create');
+                handleNavigate('create');
               }}
-              onNavigateToHistory={() => setCurrentPage('history')}
+              onNavigateToHistory={() => handleNavigate('history')}
             />
           </div>
         )}

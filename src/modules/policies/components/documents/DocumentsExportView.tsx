@@ -65,7 +65,7 @@ export const DocumentsExportView: React.FC<DocumentsExportViewProps> = ({
       ) as HTMLElement[];
       await exportPolicyPagesToPdf(
         pageElements.length > 0 ? pageElements : [fullTermsRef.current],
-        `DEVRIAN_Master_Terms_and_Conditions_v${settings.currentVersion}.pdf`
+        `DEVRIAN_Terms_and_Conditions_and_Policies_v${settings.currentVersion}.pdf`
       );
     } catch (e) {
       console.error(e);
@@ -162,11 +162,11 @@ export const DocumentsExportView: React.FC<DocumentsExportViewProps> = ({
                 <Layers size={18} />
               </span>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-950 text-neutral-400 border border-neutral-800">
-                5-Page A4 PDF
+                6-Page A4 PDF
               </span>
             </div>
             <h3 className="text-sm font-bold text-white mb-1">
-              Master Terms &amp; Conditions and Policies
+              Terms &amp; Conditions and Policies
             </h3>
             <p className="text-xs text-neutral-400 leading-relaxed mb-4">
               Complete multi-page commercial agreement covering all 20 legal clauses, auto-generated Table of Contents, Key Terms box, dual signature blocks, and revision changelog.
@@ -184,7 +184,7 @@ export const DocumentsExportView: React.FC<DocumentsExportViewProps> = ({
               className="px-4 py-2 rounded-lg bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
             >
               <FileDown size={14} />
-              {exportingType === 'full' ? 'Generating...' : 'Download Master PDF'}
+              {exportingType === 'full' ? 'Generating...' : 'Download Terms & Policies PDF'}
             </button>
           </div>
         </div>
@@ -471,13 +471,14 @@ export const DocumentsExportView: React.FC<DocumentsExportViewProps> = ({
         </div>
       )}
 
-      {/* Hidden Render Containers for PDF Capture (positioned offscreen with full dimensions) */}
+      {/* Hidden Render Containers for PDF Capture (positioned offscreen with full dimensions and full opacity) */}
       <div
         style={{
           position: 'fixed',
-          left: '-99999px',
+          left: '-9999px',
           top: '0',
-          opacity: 0,
+          zIndex: -9999,
+          opacity: 1,
           pointerEvents: 'none',
         }}
       >

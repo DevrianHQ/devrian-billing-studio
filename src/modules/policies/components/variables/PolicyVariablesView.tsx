@@ -129,7 +129,7 @@ export const PolicyVariablesView: React.FC<PolicyVariablesViewProps> = ({
         <div className="flex items-center gap-2.5">
           <Sliders size={20} className="text-white" />
           <div>
-            <h2 className="text-sm font-bold text-white">Policy Variables & Master Constants</h2>
+            <h2 className="text-sm font-bold text-white">Policy Variables &amp; Global Constants</h2>
             <p className="text-[11px] text-neutral-400">
               Editing any variable below automatically updates every clause, the Summary PDF, and the Refund Calculator.
             </p>

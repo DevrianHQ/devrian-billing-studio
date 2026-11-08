@@ -79,7 +79,7 @@ export function formatPolicySummaryForWhatsApp(
   });
 
   lines.push(sep);
-  lines.push(`By remitting the advance payment or signing the proposal, the Client agrees to these master terms.`);
+  lines.push(`By remitting the advance payment or signing the proposal, the Client agrees to these Terms & Conditions and Policies.`);
   lines.push(`For inquiries: ${v.contact_email} | Official: ${v.official_email}`);
   lines.push(`${v.business_name} Billing Studio • Official Commercial Documentation`);
 

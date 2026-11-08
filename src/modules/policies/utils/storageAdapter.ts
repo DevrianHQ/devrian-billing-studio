@@ -31,7 +31,7 @@ const INITIAL_VERSIONS: DocumentVersion[] = [
     id: 'ver-initial-1-0',
     version: '1.0',
     effectiveDate: '2026-11-01',
-    changeNote: 'Initial baseline DEVRIAN master terms and conditions',
+    changeNote: 'Initial baseline DEVRIAN Terms & Conditions and Policies',
     savedAt: '2026-11-01T00:00:00.000Z',
     clausesSnapshot: DEFAULT_CLAUSES,
     variablesSnapshot: DEFAULT_POLICY_VARIABLES,

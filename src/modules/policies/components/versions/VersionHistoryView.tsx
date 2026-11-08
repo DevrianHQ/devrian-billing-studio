@@ -103,7 +103,7 @@ export const VersionHistoryView: React.FC<VersionHistoryViewProps> = ({
           <div>
             <h2 className="text-sm font-bold text-white">Semantic Version Control &amp; Clause Diff</h2>
             <p className="text-[11px] text-neutral-400">
-              Snapshot, track revisions, compare document iterations, and roll back master policy clauses safely.
+              Snapshot, track revisions, compare document iterations, and roll back policy clauses safely.
             </p>
           </div>
         </div>

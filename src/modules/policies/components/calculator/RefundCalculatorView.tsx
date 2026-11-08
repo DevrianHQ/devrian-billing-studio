@@ -78,9 +78,9 @@ export const RefundCalculatorView: React.FC<RefundCalculatorViewProps> = ({
         <div className="flex items-center gap-2.5">
           <Calculator size={20} className="text-white" />
           <div>
-            <h2 className="text-sm font-bold text-white">Commercial Refund & Cancellation Calculator</h2>
+            <h2 className="text-sm font-bold text-white">Commercial Refund &amp; Cancellation Calculator</h2>
             <p className="text-[11px] text-neutral-400">
-              Compliant with DEVRIAN Master Policy Clause 12. Generates verified settlement statements for client disputes.
+              Compliant with DEVRIAN Terms &amp; Conditions and Policies Clause 12. Generates verified settlement statements for client disputes.
             </p>
           </div>
         </div>

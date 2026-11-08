@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FileEdit,
   Sliders,
@@ -7,11 +7,12 @@ import {
   FileCheck2,
   History,
   Eye,
+  Columns2,
+  Maximize2,
   Download,
   Upload,
-  RotateCcw,
-  Shield,
   Layers,
+  GripVertical,
 } from 'lucide-react';
 import {
   Clause,
@@ -33,8 +34,9 @@ import { PoliciesErrorBoundary } from './components/PoliciesErrorBoundary';
 
 export const POLICIES_MODULE_ENABLED = true;
 
+export type ViewLayoutMode = 'editor' | 'split' | 'preview';
+
 export const PoliciesModule: React.FC = () => {
-  // Feature flag check
   if (!POLICIES_MODULE_ENABLED) {
     return (
       <div className="p-8 text-center text-neutral-400">
@@ -43,8 +45,54 @@ export const PoliciesModule: React.FC = () => {
     );
   }
 
-  const [activeTab, setActiveTab] = useState<PolicyTab>('editor');
-  const [showLivePreview, setShowLivePreview] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<PolicyTab>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devrian.policies.v1.active_tab');
+      const validTabs: PolicyTab[] = ['editor', 'variables', 'calculator', 'documents', 'acceptance', 'versions'];
+      if (saved && validTabs.includes(saved as PolicyTab)) return saved as PolicyTab;
+    }
+    return 'editor';
+  });
+  const [viewMode, setViewMode] = useState<ViewLayoutMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devrian.policies.v1.view_mode');
+      const validModes: ViewLayoutMode[] = ['editor', 'split', 'preview'];
+      if (saved && validModes.includes(saved as ViewLayoutMode)) return saved as ViewLayoutMode;
+    }
+    return 'split';
+  });
+  const [splitRatio, setSplitRatio] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('devrian.policies.v1.split_ratio');
+      const parsed = Number(saved);
+      if (!isNaN(parsed) && parsed >= 20 && parsed <= 80) return parsed;
+    }
+    return 50;
+  });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
+  const handleTabChange = useCallback((tab: PolicyTab) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('devrian.policies.v1.active_tab', tab);
+    }
+  }, []);
+
+  const handleViewModeChange = useCallback((mode: ViewLayoutMode) => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('devrian.policies.v1.view_mode', mode);
+    }
+  }, []);
+
+  const handleSplitRatioChange = useCallback((ratio: number) => {
+    setSplitRatio(ratio);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('devrian.policies.v1.split_ratio', String(ratio));
+    }
+  }, []);
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Module state
   const [clauses, setClauses] = useState<Clause[]>(() => PoliciesStorage.loadClauses());
@@ -61,7 +109,7 @@ export const PoliciesModule: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Autosave to isolated storage namespace
+  // Autosave to storage
   useEffect(() => {
     PoliciesStorage.saveClauses(clauses);
   }, [clauses]);
@@ -81,6 +129,47 @@ export const PoliciesModule: React.FC = () => {
   useEffect(() => {
     PoliciesStorage.saveSettings(settings);
   }, [settings]);
+
+  // Draggable Splitter Handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const percentage = (offsetX / rect.width) * 100;
+      // Clamp between 25% and 75%
+      const clamped = Math.min(Math.max(percentage, 25), 75);
+      setSplitRatio(clamped);
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false);
+      }
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging]);
 
   // Tab definitions
   const tabs: { id: PolicyTab; label: string; icon: React.ReactNode; badge?: number }[] = [
@@ -135,7 +224,6 @@ export const PoliciesModule: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Version save handler
   const handleSaveNewVersion = (newVer: DocumentVersion) => {
     const updated = [newVer, ...versions];
     setVersions(updated);
@@ -161,9 +249,9 @@ export const PoliciesModule: React.FC = () => {
 
   return (
     <PoliciesErrorBoundary>
-      <div className="policies-module-root flex flex-col min-h-screen bg-[#121212] text-neutral-200">
+      <div className="policies-module-root flex flex-col h-[calc(100vh-4rem)] bg-[#121212] text-neutral-200 overflow-hidden">
         {/* Module Sub-Header & Navigation */}
-        <div className="bg-[#171717] border-b border-neutral-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+        <div className="bg-[#171717] border-b border-neutral-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0 z-20">
           {/* Module Title / Tag */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -181,7 +269,7 @@ export const PoliciesModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Module Tab Pills */}
+          {/* Module Tab Pills (Disabled if in preview-only mode, but accessible if user switches tabs) */}
           <nav className="flex items-center gap-1 overflow-x-auto py-1 custom-scrollbar">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -189,7 +277,12 @@ export const PoliciesModule: React.FC = () => {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    handleTabChange(tab.id);
+                    if (viewMode === 'preview') {
+                      handleViewModeChange('split');
+                    }
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap transition ${
                     isActive
                       ? 'bg-neutral-800 text-white shadow-sm'
@@ -214,58 +307,98 @@ export const PoliciesModule: React.FC = () => {
             })}
           </nav>
 
-          {/* Right Toolbar: Live Preview Toggle & Backup */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowLivePreview(!showLivePreview)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                showLivePreview
-                  ? 'bg-neutral-800 text-white border border-neutral-700'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
-              }`}
-              title="Toggle Live A4 PDF Preview"
-            >
-              <Eye size={13} />
-              <span className="hidden sm:inline">Preview</span>
-            </button>
+          {/* Right Toolbar: View Mode Switcher & Backup */}
+          <div className="flex items-center gap-3">
+            {/* View Mode Segmented Control: Editor / Split / Preview */}
+            <div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-lg p-0.5 text-xs select-none">
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('editor')}
+                className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition ${
+                  viewMode === 'editor'
+                    ? 'bg-neutral-800 text-white font-bold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Editor Only (Hide Preview)"
+              >
+                <FileEdit size={13} />
+                <span className="hidden xl:inline">Editor</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('split')}
+                className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition ${
+                  viewMode === 'split'
+                    ? 'bg-neutral-800 text-white font-bold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Split View (Editor & Live Preview side by side)"
+              >
+                <Columns2 size={13} />
+                <span className="hidden xl:inline">Split</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleViewModeChange('preview')}
+                className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition ${
+                  viewMode === 'preview'
+                    ? 'bg-neutral-800 text-white font-bold shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
+                }`}
+                title="Preview Only Mode (Full screen A4 document review)"
+              >
+                <Eye size={13} />
+                <span className="hidden xl:inline">Preview Only</span>
+              </button>
+            </div>
 
             {/* Isolated Backup Menu */}
-            <button
-              type="button"
-              onClick={handleExportBackup}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
-              title="Export Policies Backup JSON"
-            >
-              <Download size={14} />
-            </button>
+            <div className="flex items-center gap-1 border-l border-neutral-800 pl-3">
+              <button
+                type="button"
+                onClick={handleExportBackup}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+                title="Export Policies Backup JSON"
+              >
+                <Download size={14} />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
-              title="Import Policies Backup JSON"
-            >
-              <Upload size={14} />
-            </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+                title="Import Policies Backup JSON"
+              >
+                <Upload size={14} />
+              </button>
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImportBackup}
-              accept=".json"
-              className="hidden"
-            />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImportBackup}
+                accept=".json"
+                className="hidden"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Active Tab Panel (Left) */}
+        {/* Main Content Workspace */}
+        <div ref={containerRef} className="flex-1 flex overflow-hidden relative">
+          {/* Left Panel: Active Tab / Editor View */}
           <div
-            className={`p-4 sm:p-6 overflow-y-auto custom-scrollbar transition-all duration-200 ${
-              showLivePreview ? 'w-full lg:w-7/12 xl:w-3/5' : 'w-full'
-            }`}
+            style={{
+              width:
+                viewMode === 'editor'
+                  ? '100%'
+                  : viewMode === 'preview'
+                  ? '0%'
+                  : `${splitRatio}%`,
+              display: viewMode === 'preview' ? 'none' : 'block',
+            }}
+            className="h-full overflow-y-auto custom-scrollbar p-4 sm:p-6 transition-[width] duration-75"
           >
             {activeTab === 'editor' && (
               <ClauseEditor
@@ -327,24 +460,53 @@ export const PoliciesModule: React.FC = () => {
             )}
           </div>
 
-          {/* Live Preview Panel (Right) */}
-          {showLivePreview && (
-            <div className="hidden lg:block lg:w-5/12 xl:w-2/5 border-l border-neutral-800 h-[calc(100vh-4rem)] sticky top-16">
-              <PoliciesPreview
-                clauses={clauses}
-                variables={variables}
-                settings={settings}
-                versions={versions}
-                logoUrl={logoUrl}
-                signatureUrl={signatureUrl}
-                onSave={() => {
-                  PoliciesStorage.saveClauses(clauses);
-                  PoliciesStorage.saveVariables(variables);
-                  PoliciesStorage.saveSettings(settings);
-                }}
-              />
+          {/* Draggable Vertical Splitter (Active only in Split View) */}
+          {viewMode === 'split' && (
+            <div
+              onMouseDown={handleMouseDown}
+              onDoubleClick={() => handleSplitRatioChange(50)}
+              title="Drag to resize panels • Double click to center (50/50)"
+              className={`w-2 hover:w-2 bg-neutral-900 border-x border-neutral-800 hover:border-neutral-600 cursor-col-resize flex items-center justify-center transition-colors select-none z-10 shrink-0 ${
+                isDragging ? 'bg-neutral-700 border-neutral-500' : ''
+              }`}
+            >
+              <div className="h-8 w-1 rounded-full bg-neutral-600 flex items-center justify-center">
+                <GripVertical size={10} className="text-neutral-400" />
+              </div>
             </div>
           )}
+
+          {/* Right Panel: Live Document Preview */}
+          <div
+            style={{
+              width:
+                viewMode === 'preview'
+                  ? '100%'
+                  : viewMode === 'editor'
+                  ? '0%'
+                  : `${100 - splitRatio}%`,
+              display: viewMode === 'editor' ? 'none' : 'block',
+            }}
+            className="h-full overflow-hidden transition-[width] duration-75"
+          >
+            <PoliciesPreview
+              clauses={clauses}
+              variables={variables}
+              settings={settings}
+              versions={versions}
+              logoUrl={logoUrl}
+              signatureUrl={signatureUrl}
+              isFullscreen={viewMode === 'preview'}
+              onToggleFullscreen={() =>
+                handleViewModeChange(viewMode === 'preview' ? 'split' : 'preview')
+              }
+              onSave={() => {
+                PoliciesStorage.saveClauses(clauses);
+                PoliciesStorage.saveVariables(variables);
+                PoliciesStorage.saveSettings(settings);
+              }}
+            />
+          </div>
         </div>
       </div>
     </PoliciesErrorBoundary>
@@ -352,4 +514,3 @@ export const PoliciesModule: React.FC = () => {
 };
 
 export default PoliciesModule;
-

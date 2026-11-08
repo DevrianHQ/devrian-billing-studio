@@ -321,7 +321,7 @@ export const ClauseEditor: React.FC<ClauseEditorProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('Reset all clauses and sub-clauses to original DEVRIAN master defaults? Any custom modifications will be replaced.')) {
+              if (window.confirm('Reset all clauses and sub-clauses to original DEVRIAN standard defaults? Any custom modifications will be replaced.')) {
                 onResetAll();
               }
             }}
