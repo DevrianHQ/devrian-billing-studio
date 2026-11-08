@@ -1,6 +1,6 @@
 # DEVRIAN Billing Studio
 
-DEVRIAN Billing Studio is a high-performance, single-user, browser-only web application designed to generate print-ready A4 PDFs for **Invoices**, **Payment Receipts**, and **Quotations**.
+DEVRIAN Billing Studio is a high-performance, single-user, browser-only web application designed to generate print-ready A4 PDFs for **Invoices** and **Payment Receipts**.
 
 Designed with DEVRIAN's graphic aesthetic: strict monochromatic palette (`#0E0E0E`, `#6B6B6B`, `#E5E5E5`, `#F0F0F0`), geometric header facets, strong typographic hierarchy, and a subtle watermark.
 
@@ -12,14 +12,12 @@ Designed with DEVRIAN's graphic aesthetic: strict monochromatic palette (`#0E0E0
 - **Documents Supported**:
   - **Invoices**: Standard & Tax Invoices (with CGST/SGST or IGST calculation), line items, Indian numbering (`1,00,000`), Amount in Words (`Rupees ... Only`), payment terms, UPI QR code.
   - **Payment Receipts**: Advance / Final payments, transaction ID, UTR tracking, total project cost, amount received, balance remaining, and payment terms notes.
-  - **Quotations**: Scope of work, deliverables, validity period, client acceptance block, one-click conversion to Invoice.
 - **Smart Conversions**:
   - **Generate Receipt from Invoice**: Automatically prefills client, project, amounts, and balance due.
-  - **Convert Quotation to Invoice**: Transfers all line items, rates, and client details with sequential invoice numbering.
 - **Strict A4 Visual & Print Precision**:
   - Exact A4 dimensions (210 × 297 mm).
   - Clean multi-page pagination: 25+ item invoices automatically paginate across pages with repeated table headers and exact `Page X of Y` footers.
-  - High-resolution (scale 3) PDF export with selectable text layer.
+  - High-resolution (scale 3, 300 DPI) PDF export with native browser engine (`html-to-image` + `jsPDF`) guaranteeing 101% visual parity with live preview.
 - **Client & History Management**:
   - Client directory with auto-complete in document forms.
   - Per-client financial totals: Total Billed, Total Received, Balance Pending.
@@ -32,7 +30,7 @@ Designed with DEVRIAN's graphic aesthetic: strict monochromatic palette (`#0E0E0
 - **Settings & Business Profile**:
   - Proprietor: **Dev Rajpoot**, Founder & CEO.
   - Udyam Registration No.: **UDYAM-UP-54-0127731**.
-  - Customizable number patterns (e.g. `DEV-{YYYY}-{001}`, `DEV-REC-{001}`, `DEV-QT-{001}`).
+  - Customizable number patterns (e.g. `DEV-{YYYY}-{001}`, `DEV-REC-{001}`).
   - Item presets, terms templates, bank and UPI toggles with validation.
 
 ---
@@ -44,11 +42,13 @@ Designed with DEVRIAN's graphic aesthetic: strict monochromatic palette (`#0E0E0
 npm install
 ```
 
-### 2. Start Local Development Server
+### 2. Start Local Server
 ```bash
 npm run dev
+# or for production preview
+npm run preview
 ```
-Open your browser at `http://localhost:5173`.
+Open your browser at `http://localhost:4173`.
 
 ### 3. Production Build
 ```bash
@@ -85,7 +85,7 @@ Your financial data is stored locally in your browser's `localStorage`. To preve
 
 - **Framework**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + Google Fonts Poppins
-- **PDF Generation**: html2canvas + jsPDF (Scale 3, A4, selectable text layer)
+- **PDF Generation**: html-to-image (native browser C++ SVG engine) + jsPDF (Scale 3, 300 DPI, lossless PNG)
 - **QR Engine**: qrcode (UPI URI standard)
 - **Icons & Dates**: lucide-react, date-fns
 
