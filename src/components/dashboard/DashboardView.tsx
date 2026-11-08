@@ -96,7 +96,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             } else if (d.type === 'receipt') {
               const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
               if (!isLinked) {
-                received += d.amountReceived ?? d.advanceReceived ?? 0;
+                const amount = d.amountReceived ?? d.advanceReceived ?? 0;
+                billed += d.totalProjectCost || amount;
+                received += amount;
               }
             }
           }
@@ -132,7 +134,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       if (d.type === 'invoice') {
         clientMap[name].billed += d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
       } else if (d.type === 'receipt') {
-        clientMap[name].billed += d.totalProjectCost || d.amountReceived || 0;
+        const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
+        if (!isLinked) {
+          clientMap[name].billed += d.totalProjectCost || d.amountReceived || d.advanceReceived || 0;
+        }
       }
     });
 

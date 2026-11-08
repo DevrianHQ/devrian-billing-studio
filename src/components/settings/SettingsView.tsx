@@ -187,10 +187,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       return;
     }
     setDriveTestStatus({ status: 'loading', message: 'Connecting to Google Drive...' });
-    const result = await GoogleDriveSyncService.testConnection(driveConfig.url);
+    const result = await GoogleDriveSyncService.testConnection(driveConfig.url, driveConfig.secretPin);
     if (result.success) {
       setDriveTestStatus({ status: 'success', message: result.message });
-      GoogleDriveSyncService.saveConfig(driveConfig.url, driveConfig.autoSync);
+      GoogleDriveSyncService.saveConfig(driveConfig.url, driveConfig.autoSync, driveConfig.secretPin);
     } else {
       setDriveTestStatus({ status: 'error', message: result.message });
     }
@@ -204,10 +204,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     try {
       setDriveSyncing(true);
       const backupData = StorageService.exportFullBackup(includeSigInBackup);
-      const res = await GoogleDriveSyncService.syncDatabase(backupData, driveConfig.url);
+      const res = await GoogleDriveSyncService.syncDatabase(backupData, driveConfig.url, driveConfig.secretPin);
       if (res.success) {
         setDriveConfig(GoogleDriveSyncService.getConfig());
-        alert('All Invoices, Receipts, Clients, and Settings synced to Google Drive successfully!');
+        alert(res.message || 'All Invoices, Receipts, Clients, and Settings synced to Google Drive successfully!');
       } else {
         alert(`Google Drive Sync Failed: ${res.message}`);
       }
@@ -228,7 +228,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
     try {
       setDrivePulling(true);
-      const res = await GoogleDriveSyncService.fetchDatabase(driveConfig.url);
+      const res = await GoogleDriveSyncService.fetchDatabase(driveConfig.url, driveConfig.secretPin);
       if (res.success && res.data) {
         onRestoreData(res.data);
         alert('All documents and clients restored from Google Drive successfully!');
@@ -477,12 +477,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onChange={(e) => {
                   const val = e.target.checked;
                   setDriveConfig((prev) => ({ ...prev, autoSync: val }));
-                  GoogleDriveSyncService.saveConfig(driveConfig.url, val);
+                  GoogleDriveSyncService.saveConfig(driveConfig.url, val, driveConfig.secretPin);
                 }}
                 className="accent-white cursor-pointer"
               />
               <label htmlFor="autoDriveSync" className="text-xs text-neutral-300 font-medium cursor-pointer">
-                Auto-sync database & upload generated PDFs to Drive on Save / Download
+                Auto-sync database on Save · Upload PDF to Drive on Download
               </label>
             </div>
 
@@ -516,6 +516,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {drivePulling ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                 <span>{drivePulling ? 'Restoring...' : 'Restore from Drive'}</span>
               </button>
+            </div>
+          </div>
+
+          {/* Behavior Clarification Banner */}
+          <div className="p-2.5 bg-neutral-950/70 border border-neutral-800/80 rounded-lg text-[11px] text-neutral-400 space-y-1">
+            <div className="flex items-center gap-1.5 text-neutral-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span><strong>Save Button:</strong> Saves documents, updates client profiles, and backs up <code className="text-neutral-200">devrian_database.json</code> to Drive. (No PDF is created on Save).</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-neutral-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+              <span><strong>Download PDF Button:</strong> Generates pixel-perfect A4 PDF, downloads locally, and uploads directly into the client's Google Drive folder.</span>
             </div>
           </div>
         </div>

@@ -58,7 +58,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       } else if (d.type === 'receipt') {
         const isLinked = Boolean(d.sourceInvoiceId && clientDocs.some((inv) => inv.id === d.sourceInvoiceId));
         if (!isLinked) {
-          received += d.amountReceived || d.advanceReceived || 0;
+          const amount = d.amountReceived || d.advanceReceived || 0;
+          billed += d.totalProjectCost || amount;
+          received += amount;
         }
       }
     });
@@ -152,7 +154,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                   <div
                     key={client.id}
                     onClick={() => setSelectedClientId(client.id)}
-                    className={`p-3.5 cursor-pointer transition flex items-start justify-between ${
+                    className={`group p-3.5 cursor-pointer transition flex items-start justify-between ${
                       isSelected
                         ? 'bg-neutral-800/80 border-l-4 border-white'
                         : 'hover:bg-neutral-800/30'
@@ -173,17 +175,17 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                    <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleStartEdit(client);
                         }}
-                        className="p-1 text-neutral-400 hover:text-white"
-                        title="Edit"
+                        className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-neutral-800"
+                        title="Edit Client"
                       >
-                        <Edit2 size={12} />
+                        <Edit2 size={13} />
                       </button>
                     </div>
                   </div>

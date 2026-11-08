@@ -137,18 +137,24 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   // Save handler
   const handleSave = useCallback(() => {
+    const duplicateError = validationErrors.find((e) => e.includes('already in use'));
+    if (duplicateError) {
+      alert(`Cannot save: ${duplicateError}`);
+      return;
+    }
+
     onSaveDocument(doc);
     setSaveToast('Document saved successfully');
     setTimeout(() => setSaveToast(null), 2500);
 
-    // Auto-sync to Google Drive if configured
+    // Auto-sync to Google Drive if configured (Database JSON only - No PDF is generated here)
     const driveConfig = GoogleDriveSyncService.getConfig();
     if (driveConfig.url && driveConfig.autoSync) {
       GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true)).catch((err) => {
         console.warn('Background Google Drive sync:', err);
       });
     }
-  }, [doc, onSaveDocument]);
+  }, [doc, validationErrors, onSaveDocument]);
 
   // Mark as Final handler
   const handleMarkAsFinal = useCallback(() => {
@@ -251,10 +257,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const handleTypeChange = (newType: DocumentType) => {
     if (newType === doc.type) return;
 
-    // Check if an existing document of this type exists in list
-    const existing = existingDocs.find((d) => d.type === newType);
-    if (existing) {
-      handleUpdateDoc(existing);
+    // Check if an existing document is explicitly linked to this document
+    const linked = existingDocs.find(
+      (d) =>
+        d.type === newType &&
+        ((doc.type === 'invoice' && d.sourceInvoiceId === doc.id) ||
+          (doc.type === 'receipt' && doc.sourceInvoiceId && d.id === doc.sourceInvoiceId))
+    );
+    if (linked) {
+      handleUpdateDoc(linked);
       return;
     }
 
@@ -271,14 +282,24 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       eyebrow: newType === 'receipt' ? 'ADVANCE PAYMENT' : newType.toUpperCase(),
     };
 
+    const isSwitchingToReceipt = newType === 'receipt';
+    const totalProjectCost = doc.subtotal - (doc.discountAmount || 0) + (doc.totalTaxAmount || 0);
+
     const updated: BillingDocument = {
       ...doc,
+      // Assign fresh ID when switching types so original document is not overwritten
+      id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      sourceInvoiceId: doc.type === 'invoice' ? doc.id : doc.sourceInvoiceId,
       type: newType,
       documentNumber: newDocNumber,
       date: today,
       dueDate: newType === 'invoice' ? calculateDueDate(today, 'Net 7') : undefined,
       validTill: newType === 'quotation' ? calculateDueDate(today, 'Net 7') : undefined,
-      status: newType === 'receipt' ? 'PAID' : 'UNPAID',
+      status: isSwitchingToReceipt ? 'PAID' : 'UNPAID',
+      amountReceived: isSwitchingToReceipt
+        ? (doc.advanceReceived > 0 ? doc.advanceReceived : totalProjectCost)
+        : undefined,
+      totalProjectCost: isSwitchingToReceipt ? totalProjectCost : undefined,
       customText: { ...defText },
       notes:
         newType === 'invoice'

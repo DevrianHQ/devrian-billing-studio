@@ -16,10 +16,18 @@ export interface DriveSyncConfig {
 
 export const GoogleDriveSyncService = {
   getConfig(): DriveSyncConfig {
+    let savedUrl = (localStorage.getItem(STORAGE_KEYS.GDRIVE_URL) || '').trim();
+    // Auto-migrate from expired / deleted deployment URL to the active working deployment
+    if (
+      !savedUrl ||
+      savedUrl.includes('AKfycbxrsZtzbhza9SZ7eJmiDc25V3S4YHtGvD01Rm0i3R8sChLQEmP_ggMXFmHQIy6KSkE')
+    ) {
+      savedUrl =
+        'https://script.google.com/macros/s/AKfycbwfaJPh5Dj8gi0Lq3l5k5zzjnE3SnR-a3vFFd9FO2S2rxaj4I78_v0ZCKkC7t1YoAIe/exec';
+      localStorage.setItem(STORAGE_KEYS.GDRIVE_URL, savedUrl);
+    }
     return {
-      url:
-        localStorage.getItem(STORAGE_KEYS.GDRIVE_URL) ||
-        'https://script.google.com/macros/s/AKfycbwfaJPh5Dj8gi0Lq3l5k5zzjnE3SnR-a3vFFd9FO2S2rxaj4I78_v0ZCKkC7t1YoAIe/exec',
+      url: savedUrl,
       secretPin: localStorage.getItem(STORAGE_KEYS.GDRIVE_PIN) ?? 'DEVRIAN@2026',
       autoSync: localStorage.getItem(STORAGE_KEYS.GDRIVE_AUTO_SYNC) !== 'false',
       lastSyncedAt: localStorage.getItem(STORAGE_KEYS.GDRIVE_LAST_SYNC),

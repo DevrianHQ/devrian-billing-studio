@@ -2,8 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { BillingDocument, DocumentType, DocumentStatus, BusinessProfile } from '../../types';
 import { formatDisplayDate } from '../../services/dateUtils';
 import { formatINR } from '../../services/indianCurrency';
-import { exportElementsToPdf } from '../../services/pdfExport';
-import { DocumentPreview } from '../document/DocumentPreview';
 import {
   Search,
   Filter,
@@ -44,7 +42,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | DocumentStatus>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [downloadingDocId, setDownloadingDocId] = useState<string | null>(null);
 
   // Extract unique available months from documents
   const availableMonths = useMemo(() => {
@@ -81,38 +78,9 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
     });
   }, [documents, search, typeFilter, statusFilter, monthFilter]);
 
-  // Handle direct download from history
-  const handleDownload = async (doc: BillingDocument) => {
-    try {
-      setDownloadingDocId(doc.id);
-      // Create hidden container to render preview
-      const mountDiv = document.createElement('div');
-      mountDiv.style.position = 'fixed';
-      mountDiv.style.left = '-9999px';
-      mountDiv.style.top = '-9999px';
-      document.body.appendChild(mountDiv);
-
-      // Render the pages for this doc
-      // Wait for next frame
-      setTimeout(async () => {
-        try {
-          const pageElements = Array.from(
-            document.querySelectorAll<HTMLElement>(`#export-temp-${doc.id} .a4-page-export`)
-          );
-          if (pageElements.length > 0) {
-            await exportElementsToPdf(pageElements, `${doc.documentNumber}_DEVRIAN.pdf`);
-          } else {
-            // fallback: open in editor
-            onEditDocument(doc);
-          }
-        } finally {
-          setDownloadingDocId(null);
-        }
-      }, 300);
-    } catch (e) {
-      console.error(e);
-      setDownloadingDocId(null);
-    }
+  // Handle direct download from history - opens in editor for 100% verified fidelity PDF export
+  const handleDownload = (doc: BillingDocument) => {
+    onEditDocument(doc);
   };
 
   return (

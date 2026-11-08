@@ -94,11 +94,20 @@ export const StorageService = {
 
   saveDocument(doc: BillingDocument): BillingDocument[] {
     const docs = this.getDocuments();
-    const index = docs.findIndex((d) => d.id === doc.id);
+    const cleanNum = doc.documentNumber?.trim().toLowerCase();
+    // Match by ID, or if same type & same documentNumber, update existing record to prevent duplicates
+    const index = docs.findIndex(
+      (d) =>
+        d.id === doc.id ||
+        (Boolean(cleanNum) &&
+          d.type === doc.type &&
+          d.documentNumber?.trim().toLowerCase() === cleanNum)
+    );
     let updatedDocs: BillingDocument[];
     if (index >= 0) {
       updatedDocs = [...docs];
-      updatedDocs[index] = { ...doc, updatedAt: new Date().toISOString() };
+      // Keep original id if matched by documentNumber so cross-references remain intact
+      updatedDocs[index] = { ...doc, id: docs[index].id, updatedAt: new Date().toISOString() };
     } else {
       updatedDocs = [{ ...doc, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, ...docs];
     }
@@ -138,9 +147,18 @@ export const StorageService = {
 
   saveOrUpdateClient(clientData: Partial<Client> & { name: string }): Client {
     const clients = this.getClients();
-    const existingIndex = clients.findIndex(
-      (c) => (clientData.id && c.id === clientData.id) || c.name.trim().toLowerCase() === clientData.name.trim().toLowerCase()
-    );
+    const cleanName = clientData.name.trim().toLowerCase();
+    const cleanPhone = (clientData.phone || '').trim();
+    const cleanEmail = (clientData.email || '').trim().toLowerCase();
+
+    // Prevent duplicate clients: match by ID, Name, Phone (>=10 digits), or Email
+    const existingIndex = clients.findIndex((c) => {
+      if (clientData.id && c.id === clientData.id) return true;
+      if (cleanName && c.name.trim().toLowerCase() === cleanName) return true;
+      if (cleanPhone && cleanPhone.length >= 10 && c.phone && c.phone.trim() === cleanPhone) return true;
+      if (cleanEmail && c.email && c.email.trim().toLowerCase() === cleanEmail) return true;
+      return false;
+    });
 
     let savedClient: Client;
 
@@ -148,6 +166,7 @@ export const StorageService = {
       savedClient = {
         ...clients[existingIndex],
         ...clientData,
+        name: clientData.name.trim(),
       };
       clients[existingIndex] = savedClient;
     } else {
