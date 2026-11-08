@@ -1,26 +1,16 @@
 /**
- * DEVRIAN BILLING STUDIO - GOOGLE DRIVE SYNC SCRIPT
- * ====================================================
- * This Google Apps Script creates and manages your cloud storage:
- * 📁 Google Drive
- *    └── 📁 DEVRIAN Billing Studio
- *         ├── 📁 Invoices/         (Stores all Invoice PDFs)
- *         ├── 📁 Receipts/         (Stores all Receipt PDFs)
- *         └── 📄 devrian_database.json (Clients, Invoices, Settings backup)
+ * DEVRIAN BILLING STUDIO - GOOGLE DRIVE SYNC SCRIPT (SECURE PIN PROTECTED)
+ * =======================================================================
+ * Target Account: neelamrajput658@gmail.com
  *
- * HOW TO DEPLOY:
- * 1. Open https://script.google.com/
- * 2. Click "New Project" and name it "DEVRIAN Drive Sync"
- * 3. Delete any code in Code.gs and paste this entire code
- * 4. Click "Deploy" (top right) -> "New deployment"
- * 5. Select type: "Web app"
- * 6. Set:
- *    - Execute as: "Me" (your email)
- *    - Who has access: "Anyone"
- * 7. Click "Deploy", Authorize permissions when prompted.
- * 8. Copy the "Web app URL" (starts with https://script.google.com/macros/s/...)
- * 9. Paste that URL in DEVRIAN Billing Studio -> Settings -> Google Drive Sync!
+ * 🔒 SECURITY: Even though deployed as "Anyone", requests are blocked unless
+ * they provide the exact matching private SYNC_SECURITY_PIN below.
  */
+
+// =====================================================
+// 🔑 YOUR PRIVATE SECURITY PIN (Matches Studio Settings)
+// =====================================================
+var SYNC_SECURITY_PIN = "DEVRIAN@2026";
 
 function doPost(e) {
   try {
@@ -31,6 +21,16 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var action = data.action;
 
+    // 🔒 SECURITY CHECK: Reject any request without the exact matching PIN
+    if (SYNC_SECURITY_PIN && SYNC_SECURITY_PIN.trim() !== "") {
+      if (!data.secretPin || data.secretPin.trim() !== SYNC_SECURITY_PIN.trim()) {
+        return jsonResponse({
+          success: false,
+          error: "Access Denied: Invalid Security PIN. Unauthorized attempt."
+        });
+      }
+    }
+
     var rootFolder = getOrCreateFolder("DEVRIAN Billing Studio");
     var invoicesFolder = getOrCreateSubFolder(rootFolder, "Invoices");
     var receiptsFolder = getOrCreateSubFolder(rootFolder, "Receipts");
@@ -39,12 +39,12 @@ function doPost(e) {
     if (action === "ping") {
       return jsonResponse({
         success: true,
-        message: "Connected to Google Drive successfully! Storage folder: 'DEVRIAN Billing Studio'",
+        message: "Connected to Google Drive successfully with PIN authentication! Folder: 'DEVRIAN Billing Studio'",
         email: Session.getActiveUser().getEmail() || "Authorized User"
       });
     }
 
-    // 2. Sync Full Database
+    // 2. Sync Full Database (Clients, Documents, Profile, Dashboard)
     if (action === "syncDatabase") {
       var dbFile = getOrCreateFile(rootFolder, "devrian_database.json", "application/json");
       dbFile.setContent(JSON.stringify(data.payload, null, 2));
@@ -69,7 +69,7 @@ function doPost(e) {
       } else {
         return jsonResponse({
           success: false,
-          message: "No database found on Google Drive yet. Save an invoice first to create it."
+          message: "No database found on Google Drive yet. Save an invoice first."
         });
       }
     }
@@ -84,7 +84,6 @@ function doPost(e) {
         return jsonResponse({ success: false, error: "No PDF data provided" });
       }
 
-      // Strip data URL scheme prefix if included
       if (base64Data.indexOf(",") > -1) {
         base64Data = base64Data.split(",")[1];
       }
@@ -92,7 +91,6 @@ function doPost(e) {
       var decodedBytes = Utilities.base64Decode(base64Data);
       var pdfBlob = Utilities.newBlob(decodedBytes, "application/pdf", fileName);
 
-      // Overwrite existing file or create new
       var existing = targetFolder.getFilesByName(fileName);
       if (existing.hasNext()) {
         var exFile = existing.next();
@@ -117,6 +115,7 @@ function doGet(e) {
   return jsonResponse({
     status: "active",
     service: "DEVRIAN Billing Studio - Google Drive Cloud Sync",
+    security: "PIN Protected",
     timestamp: new Date().toISOString()
   });
 }
@@ -149,4 +148,3 @@ function getOrCreateFile(parent, name, mimeType) {
   }
   return parent.createFile(name, "{}", mimeType);
 }
-

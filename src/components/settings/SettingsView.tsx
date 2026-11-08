@@ -25,6 +25,7 @@ import {
   Check,
   Loader2,
   HelpCircle,
+  Lock,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -402,7 +403,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onChange={(e) => {
                   const val = e.target.value;
                   setDriveConfig((prev) => ({ ...prev, url: val }));
-                  GoogleDriveSyncService.saveConfig(val, driveConfig.autoSync);
+                  GoogleDriveSyncService.saveConfig(val, driveConfig.autoSync, driveConfig.secretPin);
                 }}
                 placeholder="https://script.google.com/macros/s/AKfycb.../exec"
                 className="flex-1 bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-2 rounded outline-none font-mono"
@@ -431,6 +432,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <span>{driveTestStatus.message}</span>
               </p>
             )}
+          </div>
+
+          {/* Security PIN Field */}
+          <div className="pt-2 border-t border-neutral-800/60">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] text-neutral-400 font-semibold uppercase flex items-center gap-1">
+                <Lock size={11} className="text-emerald-400" />
+                <span>Private Security PIN Lock (Bank-Grade Protection)</span>
+              </label>
+              <span className="text-[10px] text-neutral-500">
+                Matches <code className="text-neutral-400">SYNC_SECURITY_PIN</code> in your Google Script
+              </span>
+            </div>
+            <input
+              type="text"
+              value={driveConfig.secretPin}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDriveConfig((prev) => ({ ...prev, secretPin: val }));
+                GoogleDriveSyncService.saveConfig(driveConfig.url, driveConfig.autoSync, val);
+              }}
+              placeholder="DEVRIAN@2026"
+              className="w-full sm:w-80 bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none font-mono font-bold tracking-wider"
+            />
+            <p className="text-[10px] text-neutral-500 mt-1">
+              Any unauthorized person with your URL is completely blocked unless they provide this exact matching PIN.
+            </p>
           </div>
 
           {/* Sync Actions & Auto-Sync Toggle */}

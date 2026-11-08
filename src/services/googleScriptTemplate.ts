@@ -1,13 +1,16 @@
 export const DRIVE_SYNC_SCRIPT_TEMPLATE = `/**
- * DEVRIAN BILLING STUDIO - GOOGLE DRIVE SYNC SCRIPT
- * ====================================================
- * Automatically creates and manages:
- * 📁 Google Drive
- *    └── 📁 DEVRIAN Billing Studio
- *         ├── 📁 Invoices/             (All Invoice PDFs)
- *         ├── 📁 Receipts/             (All Payment Receipt PDFs)
- *         └── 📄 devrian_database.json (Clients, Invoices, Settings backup)
+ * DEVRIAN BILLING STUDIO - GOOGLE DRIVE SYNC SCRIPT (SECURE PIN PROTECTED)
+ * =======================================================================
+ * Target Account: neelamrajput658@gmail.com
+ *
+ * 🔒 SECURITY: Even though deployed as "Anyone", requests are blocked unless
+ * they provide the exact matching private SYNC_SECURITY_PIN below.
  */
+
+// =====================================================
+// 🔑 YOUR PRIVATE SECURITY PIN (Matches Studio Settings)
+// =====================================================
+var SYNC_SECURITY_PIN = "DEVRIAN@2026";
 
 function doPost(e) {
   try {
@@ -18,6 +21,16 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var action = data.action;
 
+    // 🔒 SECURITY CHECK: Reject any request without the exact matching PIN
+    if (SYNC_SECURITY_PIN && SYNC_SECURITY_PIN.trim() !== "") {
+      if (!data.secretPin || data.secretPin.trim() !== SYNC_SECURITY_PIN.trim()) {
+        return jsonResponse({
+          success: false,
+          error: "Access Denied: Invalid Security PIN. Unauthorized attempt."
+        });
+      }
+    }
+
     var rootFolder = getOrCreateFolder("DEVRIAN Billing Studio");
     var invoicesFolder = getOrCreateSubFolder(rootFolder, "Invoices");
     var receiptsFolder = getOrCreateSubFolder(rootFolder, "Receipts");
@@ -26,12 +39,12 @@ function doPost(e) {
     if (action === "ping") {
       return jsonResponse({
         success: true,
-        message: "Connected to Google Drive successfully! Folder: DEVRIAN Billing Studio",
+        message: "Connected to Google Drive successfully with PIN authentication! Folder: DEVRIAN Billing Studio",
         email: Session.getActiveUser().getEmail() || "Authorized User"
       });
     }
 
-    // 2. Sync Full Database (Clients, Documents, Profile)
+    // 2. Sync Full Database (Clients, Documents, Profile, Dashboard)
     if (action === "syncDatabase") {
       var dbFile = getOrCreateFile(rootFolder, "devrian_database.json", "application/json");
       dbFile.setContent(JSON.stringify(data.payload, null, 2));
@@ -102,6 +115,7 @@ function doGet(e) {
   return jsonResponse({
     status: "active",
     service: "DEVRIAN Billing Studio - Google Drive Cloud Sync",
+    security: "PIN Protected",
     timestamp: new Date().toISOString()
   });
 }
@@ -135,4 +149,3 @@ function getOrCreateFile(parent, name, mimeType) {
   return parent.createFile(name, "{}", mimeType);
 }
 `;
-

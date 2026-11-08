@@ -4,10 +4,12 @@ const STORAGE_KEYS = {
   GDRIVE_URL: 'devrian_gdrive_sync_url_v1',
   GDRIVE_AUTO_SYNC: 'devrian_gdrive_auto_sync_v1',
   GDRIVE_LAST_SYNC: 'devrian_gdrive_last_sync_v1',
+  GDRIVE_PIN: 'devrian_gdrive_secret_pin_v1',
 };
 
 export interface DriveSyncConfig {
   url: string;
+  secretPin: string;
   autoSync: boolean;
   lastSyncedAt: string | null;
 }
@@ -16,14 +18,18 @@ export const GoogleDriveSyncService = {
   getConfig(): DriveSyncConfig {
     return {
       url: localStorage.getItem(STORAGE_KEYS.GDRIVE_URL) || '',
+      secretPin: localStorage.getItem(STORAGE_KEYS.GDRIVE_PIN) ?? 'DEVRIAN@2026',
       autoSync: localStorage.getItem(STORAGE_KEYS.GDRIVE_AUTO_SYNC) === 'true',
       lastSyncedAt: localStorage.getItem(STORAGE_KEYS.GDRIVE_LAST_SYNC),
     };
   },
 
-  saveConfig(url: string, autoSync: boolean): void {
+  saveConfig(url: string, autoSync: boolean, secretPin?: string): void {
     localStorage.setItem(STORAGE_KEYS.GDRIVE_URL, url.trim());
     localStorage.setItem(STORAGE_KEYS.GDRIVE_AUTO_SYNC, autoSync ? 'true' : 'false');
+    if (secretPin !== undefined) {
+      localStorage.setItem(STORAGE_KEYS.GDRIVE_PIN, secretPin.trim());
+    }
   },
 
   setLastSynced(isoDate: string): void {
@@ -33,20 +39,25 @@ export const GoogleDriveSyncService = {
   /**
    * Test the connection to the Google Apps Script Web App
    */
-  async testConnection(scriptUrl?: string): Promise<{ success: boolean; message: string }> {
-    const targetUrl = (scriptUrl || this.getConfig().url).trim();
+  async testConnection(scriptUrl?: string, secretPin?: string): Promise<{ success: boolean; message: string }> {
+    const config = this.getConfig();
+    const targetUrl = (scriptUrl || config.url).trim();
+    const pin = (secretPin !== undefined ? secretPin : config.secretPin).trim();
+
     if (!targetUrl) {
       return { success: false, message: 'Google Apps Script URL is empty.' };
     }
 
     try {
-      // Use text/plain to prevent CORS preflight OPTIONS request to Google Apps Script
       const res = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
         },
-        body: JSON.stringify({ action: 'ping' }),
+        body: JSON.stringify({
+          action: 'ping',
+          secretPin: pin,
+        }),
       });
 
       if (!res.ok) {
@@ -72,9 +83,13 @@ export const GoogleDriveSyncService = {
    */
   async syncDatabase(
     payload: AppBackupData,
-    scriptUrl?: string
+    scriptUrl?: string,
+    secretPin?: string
   ): Promise<{ success: boolean; message: string; updatedAt?: string }> {
-    const targetUrl = (scriptUrl || this.getConfig().url).trim();
+    const config = this.getConfig();
+    const targetUrl = (scriptUrl || config.url).trim();
+    const pin = (secretPin !== undefined ? secretPin : config.secretPin).trim();
+
     if (!targetUrl) {
       return { success: false, message: 'Google Drive sync URL is not configured.' };
     }
@@ -87,6 +102,7 @@ export const GoogleDriveSyncService = {
         },
         body: JSON.stringify({
           action: 'syncDatabase',
+          secretPin: pin,
           payload,
         }),
       });
@@ -111,8 +127,14 @@ export const GoogleDriveSyncService = {
   /**
    * Fetch the latest database from Google Drive
    */
-  async fetchDatabase(scriptUrl?: string): Promise<{ success: boolean; data?: AppBackupData; message?: string }> {
-    const targetUrl = (scriptUrl || this.getConfig().url).trim();
+  async fetchDatabase(
+    scriptUrl?: string,
+    secretPin?: string
+  ): Promise<{ success: boolean; data?: AppBackupData; message?: string }> {
+    const config = this.getConfig();
+    const targetUrl = (scriptUrl || config.url).trim();
+    const pin = (secretPin !== undefined ? secretPin : config.secretPin).trim();
+
     if (!targetUrl) {
       return { success: false, message: 'Google Drive sync URL is not configured.' };
     }
@@ -123,7 +145,10 @@ export const GoogleDriveSyncService = {
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
         },
-        body: JSON.stringify({ action: 'fetchDatabase' }),
+        body: JSON.stringify({
+          action: 'fetchDatabase',
+          secretPin: pin,
+        }),
       });
 
       if (!res.ok) {
@@ -148,9 +173,13 @@ export const GoogleDriveSyncService = {
     docType: 'invoice' | 'receipt',
     fileName: string,
     pdfBase64: string,
-    scriptUrl?: string
+    scriptUrl?: string,
+    secretPin?: string
   ): Promise<{ success: boolean; message: string }> {
-    const targetUrl = (scriptUrl || this.getConfig().url).trim();
+    const config = this.getConfig();
+    const targetUrl = (scriptUrl || config.url).trim();
+    const pin = (secretPin !== undefined ? secretPin : config.secretPin).trim();
+
     if (!targetUrl) {
       return { success: false, message: 'Google Drive sync URL is not configured.' };
     }
@@ -163,6 +192,7 @@ export const GoogleDriveSyncService = {
         },
         body: JSON.stringify({
           action: 'uploadPdf',
+          secretPin: pin,
           docType,
           fileName,
           base64Pdf: pdfBase64,
@@ -184,4 +214,3 @@ export const GoogleDriveSyncService = {
     }
   },
 };
-
