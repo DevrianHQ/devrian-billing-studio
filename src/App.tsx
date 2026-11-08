@@ -23,6 +23,8 @@ import { ClientsView } from './components/clients/ClientsView';
 import { DashboardView } from './components/dashboard/DashboardView';
 import { SettingsView } from './components/settings/SettingsView';
 
+const PoliciesModule = React.lazy(() => import('./modules/policies/PoliciesModule'));
+
 export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<AppPage>('create');
   const [profile, setProfile] = useState<BusinessProfile>(() => StorageService.getProfile());
@@ -562,6 +564,20 @@ export const App: React.FC = () => {
               }}
               onNavigateToHistory={() => setCurrentPage('history')}
             />
+          </div>
+        )}
+
+        {currentPage === 'policies' && (
+          <div className="h-[calc(100vh-64px)] overflow-y-auto">
+            <React.Suspense
+              fallback={
+                <div className="h-full flex items-center justify-center text-xs text-neutral-400">
+                  Loading Terms &amp; Policies Studio...
+                </div>
+              }
+            >
+              <PoliciesModule />
+            </React.Suspense>
           </div>
         )}
 

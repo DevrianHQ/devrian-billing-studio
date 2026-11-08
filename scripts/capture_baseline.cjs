@@ -141,3 +141,4 @@ run().catch((err) => {
   console.error('Fatal error capturing baseline:', err);
   process.exit(1);
 });
+

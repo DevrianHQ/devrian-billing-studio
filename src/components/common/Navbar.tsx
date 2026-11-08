@@ -7,9 +7,10 @@ import {
   Users,
   LayoutDashboard,
   Settings,
+  FileText,
 } from 'lucide-react';
 
-export type AppPage = 'create' | 'history' | 'clients' | 'dashboard' | 'settings';
+export type AppPage = 'create' | 'history' | 'clients' | 'dashboard' | 'settings' | 'policies';
 
 interface NavbarProps {
   currentPage: AppPage;
@@ -29,6 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'history', label: 'History', icon: <Clock size={14} />, badge: docCount },
     { id: 'clients', label: 'Clients', icon: <Users size={14} /> },
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
+    { id: 'policies', label: 'Terms & Policies', icon: <FileText size={14} /> },
     { id: 'settings', label: 'Settings', icon: <Settings size={14} /> },
   ];
 
