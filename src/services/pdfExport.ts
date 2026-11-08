@@ -56,11 +56,16 @@ async function renderPageElementToPng(el: HTMLElement): Promise<string> {
  * Exports one or more A4 page elements to a multi-page PDF.
  * Ensures 100% exact, pixel-perfect fidelity matching the live preview.
  */
+export interface PdfExportResult {
+  success: boolean;
+  pdfBase64?: string;
+}
+
 export async function exportElementsToPdf(
   elements: HTMLElement[],
   fileName: string,
   options?: ExportPdfOptions
-): Promise<boolean> {
+): Promise<PdfExportResult> {
   if (!elements || elements.length === 0) {
     throw new Error('No pages found to export');
   }
@@ -138,7 +143,8 @@ export async function exportElementsToPdf(
 
     options?.onProgress?.(100, 'Saving PDF...');
     pdf.save(fileName);
-    return true;
+    const pdfBase64 = pdf.output('datauristring');
+    return { success: true, pdfBase64 };
   } finally {
     // 3. Restore all original transforms and box-shadows
     transformedAncestors.forEach(({ element, originalTransform }) => {

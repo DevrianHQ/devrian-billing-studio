@@ -4,6 +4,7 @@ import { DocumentForm } from './DocumentForm';
 import { DocumentPreview } from '../document/DocumentPreview';
 import { exportElementsToPdf } from '../../services/pdfExport';
 import { StorageService } from '../../services/storage';
+import { GoogleDriveSyncService } from '../../services/googleDriveSync';
 import { generateNextDocumentNumber, isDocumentNumberDuplicate } from '../../services/numbering';
 import { getTodayISODate, calculateDueDate } from '../../services/dateUtils';
 import { SignatureStudioModal } from '../common/SignatureStudioModal';
@@ -139,6 +140,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     onSaveDocument(doc);
     setSaveToast('Document saved successfully');
     setTimeout(() => setSaveToast(null), 2500);
+
+    // Auto-sync to Google Drive if configured
+    const driveConfig = GoogleDriveSyncService.getConfig();
+    if (driveConfig.url && driveConfig.autoSync) {
+      GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true)).catch((err) => {
+        console.warn('Background Google Drive sync:', err);
+      });
+    }
   }, [doc, onSaveDocument]);
 
   // Mark as Final handler
@@ -191,7 +200,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       const cleanNumber = (doc.documentNumber || 'DOC').replace(/[^a-zA-Z0-9_-]/g, '_');
       const fileName = `DEVRIAN_${docTypeLabel}_${cleanNumber}_${cleanClient}.pdf`;
 
-      await exportElementsToPdf(pageElements, fileName, {
+      const exportResult = await exportElementsToPdf(pageElements, fileName, {
         onProgress: (_progress, msg) => {
           setExportMessage(msg);
         },
@@ -206,6 +215,25 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       onSaveDocument(doc);
       setSaveToast('PDF downloaded successfully');
       setTimeout(() => setSaveToast(null), 2500);
+
+      // Auto-upload PDF and sync database to Google Drive if configured
+      const driveConfig = GoogleDriveSyncService.getConfig();
+      if (driveConfig.url && driveConfig.autoSync) {
+        (async () => {
+          try {
+            if (exportResult?.pdfBase64) {
+              await GoogleDriveSyncService.uploadPdf(
+                doc.type === 'receipt' ? 'receipt' : 'invoice',
+                fileName,
+                exportResult.pdfBase64
+              );
+            }
+            await GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true));
+          } catch (e) {
+            console.warn('Background Google Drive upload notice:', e);
+          }
+        })();
+      }
     } catch (err: any) {
       console.error('PDF generation error:', err);
       alert(`Error generating PDF: ${err.message || err}`);
