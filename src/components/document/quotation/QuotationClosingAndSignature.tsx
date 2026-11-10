@@ -5,6 +5,7 @@ import { DocumentCustomText, DocumentSectionVisibility } from '../../../types';
 interface QuotationClosingAndSignatureProps {
   documentNumber: string;
   date: string;
+  validTill?: string;
   closingLine?: string;
   signatureUrl?: string;
   applySignature?: boolean;
@@ -16,6 +17,7 @@ interface QuotationClosingAndSignatureProps {
 export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignatureProps> = ({
   documentNumber,
   date,
+  validTill,
   closingLine,
   signatureUrl,
   applySignature = false,
@@ -24,6 +26,7 @@ export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignature
   visibility,
 }) => {
   const formattedDate = formatDisplayDate(date);
+  const formattedValidTill = validTill ? formatDisplayDate(validTill) : '';
   const showClosing = visibility.showClosingLine !== false;
   const showSignatory = visibility.showSignature !== false || applySignature;
   const canShowSignatureImage = Boolean(applySignature && isFinal && signatureUrl);
@@ -33,77 +36,119 @@ export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignature
     customText.closingLine ||
     'Thank you for considering DEVRIAN. We look forward to working with you.';
 
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 500,
+    fontSize: '6.5pt',
+    letterSpacing: '0.25em',
+    wordSpacing: '0.5em',
+    color: '#8A8A8A',
+    textTransform: 'uppercase',
+    display: 'block',
+    lineHeight: 1,
+  };
+
+  const valueStyle: React.CSSProperties = {
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 600,
+    fontSize: '9.5pt',
+    color: '#0E0E0E',
+    display: 'block',
+    marginTop: '1.2mm',
+    lineHeight: 1.25,
+  };
+
   return (
     <div
       className="w-full box-border"
       style={{
         paddingLeft: '18mm',
         paddingRight: '18mm',
-        paddingTop: '1mm',
+        paddingTop: '2.5mm',
         paddingBottom: '2mm',
       }}
     >
       <div className="flex justify-between items-end">
-        {/* Left: Closing line */}
-        <div className="flex-1 pr-6 pb-[1mm]">
+        {/* Left Side: Closing Line + Quotation Number & Dates */}
+        <div className="flex flex-col justify-end text-left pb-[0.5mm]">
           {showClosing && (
             <p
               style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontStyle: 'italic',
                 fontWeight: 400,
-                fontSize: '8.2pt',
-                color: '#555555',
-                lineHeight: 1.35,
-                margin: 0,
+                fontSize: '8pt',
+                color: '#4A4A4A',
+                lineHeight: 1.4,
+                margin: '0 0 2.5mm 0',
+                maxWidth: '95mm',
               }}
             >
               {effectiveClosing}
             </p>
           )}
+
+          <div className="space-y-[3mm]">
+            {/* Row 1: Document Number */}
+            <div>
+              <span style={labelStyle}>QUOTATION NO.</span>
+              <span style={valueStyle} className="font-mono">
+                {documentNumber || '—'}
+              </span>
+            </div>
+
+            {/* Row 2: Date & Valid Till */}
+            <div className="flex items-center gap-[7mm]">
+              <div>
+                <span style={labelStyle}>QUOTATION DATE</span>
+                <span style={valueStyle}>{formattedDate || '—'}</span>
+              </div>
+
+              {formattedValidTill && (
+                <div>
+                  <span style={labelStyle}>VALID TILL</span>
+                  <span style={valueStyle}>{formattedValidTill}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Right: Signature block */}
+        {/* Right Side: Dev Rajpoot signature & audit line */}
         {showSignatory && (
-          <div className="flex flex-col items-end shrink-0 text-right">
-            {/* Signature Image */}
-            <div
-              style={{
-                height: '11mm',
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'flex-end',
-                marginBottom: '1mm',
-              }}
-            >
-              {canShowSignatureImage ? (
+          <div className="flex flex-col items-end text-right">
+            {canShowSignatureImage ? (
+              <div
+                className="flex items-end justify-end mb-1"
+                style={{ height: '16mm' }}
+              >
                 <img
                   src={signatureUrl}
                   alt="Dev Rajpoot Signature"
                   style={{
-                    maxHeight: '10.5mm',
-                    maxWidth: '38mm',
+                    maxHeight: '16mm',
+                    maxWidth: '55mm',
                     objectFit: 'contain',
                   }}
                 />
-              ) : (
-                <div style={{ height: '7mm' }} />
-              )}
-            </div>
+              </div>
+            ) : (
+              <div style={{ height: '6mm' }} />
+            )}
 
-            {/* Dev Rajpoot & Founder info */}
             <div
               style={{
                 borderTop: '0.25mm solid #0E0E0E',
-                paddingTop: '1.2mm',
-                minWidth: '45mm',
+                paddingTop: '1.5mm',
+                minWidth: '50mm',
               }}
+              className="text-right"
             >
               <p
                 style={{
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 700,
-                  fontSize: '10pt',
+                  fontSize: '10.5pt',
                   color: '#0E0E0E',
                   lineHeight: 1.2,
                   margin: 0,
@@ -115,10 +160,10 @@ export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignature
                 style={{
                   fontFamily: "'Poppins', sans-serif",
                   fontWeight: 400,
-                  fontSize: '7.8pt',
+                  fontSize: '8pt',
                   color: '#6B6B6B',
                   lineHeight: 1.2,
-                  marginTop: '0.4mm',
+                  marginTop: '0.5mm',
                   marginBottom: 0,
                 }}
               >
@@ -131,9 +176,9 @@ export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignature
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: 400,
-                    fontSize: '6.2pt',
+                    fontSize: '6.5pt',
                     color: '#8A8A8A',
-                    marginTop: '0.8mm',
+                    marginTop: '1mm',
                     marginBottom: 0,
                     lineHeight: 1.2,
                   }}
@@ -148,11 +193,11 @@ export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignature
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontWeight: 400,
-                    fontSize: '5.5pt',
-                    color: '#A1A1AA',
-                    marginTop: '0.6mm',
+                    fontSize: '6pt',
+                    color: '#999999',
+                    marginTop: '0.5mm',
                     marginBottom: 0,
-                    lineHeight: 1.2,
+                    lineHeight: 1.1,
                   }}
                 >
                   {customText.signatureDisclaimer ||
@@ -166,4 +211,3 @@ export const QuotationClosingAndSignature: React.FC<QuotationClosingAndSignature
     </div>
   );
 };
-

@@ -7,7 +7,7 @@ interface QuotationTermsProps {
 
 export const QuotationTerms: React.FC<QuotationTermsProps> = ({
   notes = [],
-  heading = 'TERMS & NOTES',
+  heading = 'TERMS & CONDITIONS',
 }) => {
   if (!notes || notes.length === 0) return null;
 
@@ -17,44 +17,51 @@ export const QuotationTerms: React.FC<QuotationTermsProps> = ({
       style={{
         paddingLeft: '18mm',
         paddingRight: '18mm',
-        paddingTop: '1mm',
+        paddingTop: '1.5mm',
         paddingBottom: '1.5mm',
       }}
     >
       <div
-        className="w-full rounded-[2px]"
         style={{
           backgroundColor: '#F0F0F0',
-          borderLeft: '2.5mm solid #0E0E0E',
-          padding: '2.5mm 3.5mm',
-          fontFamily: "'Poppins', sans-serif",
+          borderLeft: '1.2mm solid #0E0E0E',
+          padding: '3.5mm',
         }}
       >
-        <span
+        <div
           style={{
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 700,
-            fontSize: '6.8pt',
-            letterSpacing: '0.22em',
-            wordSpacing: '0.45em',
+            fontSize: '7pt',
+            letterSpacing: '0.25em',
+            wordSpacing: '0.7em',
             color: '#0E0E0E',
             textTransform: 'uppercase',
-            display: 'block',
-            marginBottom: '1.2mm',
+            marginBottom: '1.5mm',
             lineHeight: 1,
           }}
         >
           {heading}
-        </span>
+        </div>
 
-        <ol className="list-decimal pl-4 space-y-[0.8mm] m-0" style={{ fontSize: '7.5pt', color: '#262626' }}>
-          {notes.map((note, idx) => (
-            <li key={idx} style={{ lineHeight: 1.35 }}>
-              <span>{note}</span>
-            </li>
-          ))}
-        </ol>
+        <div
+          style={{
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 400,
+            fontSize: '8pt',
+            color: '#333333',
+            lineHeight: 1.4,
+          }}
+        >
+          <ol className="list-decimal list-inside space-y-0.5">
+            {notes.map((note, index) => (
+              <li key={index} style={{ paddingLeft: '1mm' }}>
+                {note}
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </div>
   );
 };
-

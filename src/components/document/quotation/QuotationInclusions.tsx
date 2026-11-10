@@ -11,21 +11,54 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
 }) => {
   if (!inclusions && !exclusions) return null;
 
-  // Decide layout: two columns if both are under 160 characters or have <= 4 lines, stacked if longer
-  const incLines = (inclusions || '').split('\n').filter(Boolean).length;
-  const excLines = (exclusions || '').split('\n').filter(Boolean).length;
-  const isShort = (inclusions?.length || 0) < 180 && (exclusions?.length || 0) < 180 && incLines <= 4 && excLines <= 4;
+  const headingStyle: React.CSSProperties = {
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 700,
+    fontSize: '7pt',
+    letterSpacing: '0.25em',
+    wordSpacing: '0.7em',
+    color: '#0E0E0E',
+    textTransform: 'uppercase',
+    marginBottom: '1.5mm',
+    lineHeight: 1,
+  };
+
+  const itemLabelStyle = (color: string): React.CSSProperties => ({
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 600,
+    fontSize: '6.5pt',
+    letterSpacing: '0.2em',
+    wordSpacing: '0.5em',
+    color,
+    textTransform: 'uppercase',
+    display: 'block',
+    marginBottom: '1.5mm',
+    lineHeight: 1,
+  });
 
   const renderContent = (text: string, color: string, isPositive: boolean) => {
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lines.length > 1) {
       return (
-        <div className="space-y-[0.8mm] pl-[1.5mm]">
+        <div className="space-y-[1mm]">
           {lines.map((line, idx) => {
-            const clean = line.replace(/^[-•*]\s*/, '').trim();
+            const clean = line.replace(/^[-•*✓—]\s*/, '').trim();
             return (
-              <div key={idx} className="flex items-start gap-1.5 text-[7.8pt]" style={{ color, lineHeight: 1.35 }}>
-                <span className={`text-[7pt] mt-[0.5mm] shrink-0 font-bold ${isPositive ? 'text-emerald-600' : 'text-neutral-400'}`}>
+              <div
+                key={idx}
+                className="flex items-start gap-1.5"
+                style={{
+                  fontFamily: "'Poppins', sans-serif",
+                  fontSize: '8pt',
+                  color,
+                  lineHeight: 1.35,
+                }}
+              >
+                <span
+                  className={`text-[7pt] mt-[0.6mm] shrink-0 font-bold ${
+                    isPositive ? 'text-emerald-600' : 'text-neutral-400'
+                  }`}
+                >
                   {isPositive ? '✓' : '—'}
                 </span>
                 <span>{clean}</span>
@@ -38,11 +71,11 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
     return (
       <p
         style={{
-          fontSize: '7.8pt',
+          fontFamily: "'Poppins', sans-serif",
+          fontSize: '8pt',
           fontWeight: 400,
           color,
           lineHeight: 1.35,
-          paddingLeft: '2mm',
           margin: 0,
           whiteSpace: 'pre-line',
         }}
@@ -63,58 +96,30 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
       }}
     >
       <div
-        className="w-full bg-[#FAFAFA] rounded-[2px]"
         style={{
-          border: '0.2mm solid #E5E5E5',
-          padding: '2.5mm 3.5mm',
-          fontFamily: "'Poppins', sans-serif",
+          border: '0.25mm solid #E2E8F0',
+          padding: '3.5mm 4mm',
+          backgroundColor: '#FFFFFF',
         }}
       >
-        <div className={isShort ? 'grid grid-cols-2 gap-4' : 'space-y-2'}>
+        <div style={headingStyle}>
+          INCLUSIONS &amp; EXCLUSIONS
+        </div>
+
+        <div className="grid grid-cols-2 gap-[5mm] pt-[1.5mm] border-t border-[#F1F5F9]">
           {/* Included */}
-          {inclusions && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-[1mm]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
-                <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: '7.5pt',
-                    color: '#0E0E0E',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Included:
-                </span>
-              </div>
-              {renderContent(inclusions, '#262626', true)}
-            </div>
-          )}
+          <div>
+            <span style={itemLabelStyle('#059669')}>INCLUDED:</span>
+            {inclusions ? renderContent(inclusions, '#262626', true) : <span className="text-[#8A8A8A] text-[8pt]">None specified</span>}
+          </div>
 
           {/* Not included */}
-          {exclusions && (
-            <div>
-              <div className="flex items-center gap-1.5 mb-[1mm]">
-                <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 shrink-0" />
-                <span
-                  style={{
-                    fontWeight: 600,
-                    fontSize: '7.5pt',
-                    color: '#0E0E0E',
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Not included:
-                </span>
-              </div>
-              {renderContent(exclusions, '#52525B', false)}
-            </div>
-          )}
+          <div>
+            <span style={itemLabelStyle('#71717A')}>NOT INCLUDED:</span>
+            {exclusions ? renderContent(exclusions, '#52525B', false) : <span className="text-[#8A8A8A] text-[8pt]">None specified</span>}
+          </div>
         </div>
       </div>
     </div>
   );
 };
-

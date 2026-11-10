@@ -11,6 +11,41 @@ interface QuotationPaymentBoxProps {
   showQr?: boolean;
 }
 
+function parseBankDetails(value: string, business: BusinessProfile) {
+  const acNameMatch = value.match(/A\/c\s*Name:\s*([^·\n]+)/i);
+  const bankMatch = value.match(/Bank:\s*([^·\n]+)/i);
+  const acNoMatch = value.match(/A\/c\s*No\.?:\s*([^·\n]+)/i);
+  const ifscMatch = value.match(/IFSC:\s*([^·\n]+)/i);
+
+  const acName = acNameMatch?.[1]?.trim() || business.bankAccountName || 'Dev Rajpoot (DEVRIAN)';
+  const bankName = bankMatch?.[1]?.trim() || business.bankName || 'HDFC Bank';
+  const acNo = acNoMatch?.[1]?.trim() || business.bankAccountNumber || '50100234567890';
+  const ifsc = ifscMatch?.[1]?.trim() || business.bankIfsc || 'HDFC0001234';
+
+  return { acName, bankName, acNo, ifsc };
+}
+
+function getEffectivePaymentValue(row: PaymentDetailRow, business: BusinessProfile): string {
+  const lbl = row.label.toLowerCase();
+  if (lbl.includes('upi')) {
+    if (!row.value || row.value.trim() === '' || row.value === 'inquiry@devrian.in') {
+      return business.upiId || 'Devrian.official@gmail.com';
+    }
+    return row.value;
+  }
+  if (lbl.includes('bank')) {
+    if (!row.value || row.value.includes('[Bank Name]') || row.value.includes('[Account Number]') || row.value.includes('[IFSC]')) {
+      const bankName = business.bankName || 'HDFC Bank';
+      const acNo = business.bankAccountNumber || '50100234567890';
+      const ifsc = business.bankIfsc || 'HDFC0001234';
+      const acName = business.bankAccountName || 'Dev Rajpoot (DEVRIAN)';
+      return `A/c Name: ${acName} · Bank: ${bankName} · A/c No.: ${acNo} · IFSC: ${ifsc}`;
+    }
+    return row.value;
+  }
+  return row.value;
+}
+
 export const QuotationPaymentBox: React.FC<QuotationPaymentBoxProps> = ({
   business,
   paymentRows,
@@ -20,44 +55,58 @@ export const QuotationPaymentBox: React.FC<QuotationPaymentBoxProps> = ({
 }) => {
   const [qrUrl, setQrUrl] = useState<string>('');
 
-  const upiId = business.upiId || 'Devrian.official@gmail.com';
+  const activeRows = paymentRows?.filter((r) => r.enabled) || [];
+  const upiRow = activeRows.find((r) => r.label.toLowerCase().includes('upi'));
+  const bankRow = activeRows.find((r) => r.label.toLowerCase().includes('bank'));
+
+  const effectiveUpiVal = upiRow ? getEffectivePaymentValue(upiRow, business) : (business.upiId || 'Devrian.official@gmail.com');
+  const bankRawVal = bankRow ? getEffectivePaymentValue(bankRow, business) : '';
+  const bankInfo = parseBankDetails(bankRawVal, business);
+
+  const hasUpi = Boolean(upiRow ? upiRow.enabled : (business.showUpi ?? true));
+  const hasBank = Boolean(bankRow ? bankRow.enabled : (business.showBankDetails ?? true));
 
   useEffect(() => {
     let mounted = true;
-    if (showQr && upiId) {
-      generateUpiQrDataUrl(upiId, advanceAmount, quotationNumber, 'DEVRIAN').then((url) => {
-        if (mounted) setQrUrl(url);
-      });
+    if (showQr && effectiveUpiVal) {
+      generateUpiQrDataUrl(effectiveUpiVal, advanceAmount, quotationNumber, 'DEVRIAN')
+        .then((url) => {
+          if (mounted) setQrUrl(url);
+        })
+        .catch(() => {
+          if (mounted) setQrUrl('');
+        });
     } else {
       setQrUrl('');
     }
     return () => {
       mounted = false;
     };
-  }, [showQr, upiId, advanceAmount, quotationNumber]);
+  }, [showQr, effectiveUpiVal, advanceAmount, quotationNumber]);
 
-  // Determine effective rows
-  const effectiveRows =
-    paymentRows && paymentRows.length > 0
-      ? paymentRows.filter((r) => r.enabled)
-      : [
-          {
-            id: 'p1',
-            label: 'UPI',
-            value: upiId,
-            enabled: true,
-          },
-          {
-            id: 'p2',
-            label: 'Bank Transfer',
-            value: `A/c Name: ${business.bankAccountName || 'Dev Rajpoot (DEVRIAN)'} · Bank: ${
-              business.bankName || 'HDFC Bank'
-            } · A/c No.: ${business.bankAccountNumber || '50100234567890'} · IFSC: ${
-              business.bankIfsc || 'HDFC0001234'
-            }`,
-            enabled: true,
-          },
-        ];
+  const headingStyle: React.CSSProperties = {
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 700,
+    fontSize: '7pt',
+    letterSpacing: '0.25em',
+    wordSpacing: '0.7em',
+    color: '#0E0E0E',
+    textTransform: 'uppercase',
+    marginBottom: '1.5mm',
+    lineHeight: 1,
+  };
+
+  const itemLabelStyle: React.CSSProperties = {
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 400,
+    fontSize: '6.5pt',
+    letterSpacing: '0.25em',
+    wordSpacing: '0.7em',
+    color: '#8A8A8A',
+    textTransform: 'uppercase',
+    display: 'block',
+    lineHeight: 1,
+  };
 
   return (
     <div
@@ -65,113 +114,105 @@ export const QuotationPaymentBox: React.FC<QuotationPaymentBoxProps> = ({
       style={{
         paddingLeft: '18mm',
         paddingRight: '18mm',
-        paddingTop: '1mm',
+        paddingTop: '1.5mm',
         paddingBottom: '1.5mm',
       }}
     >
       <div
-        className="w-full bg-[#FFFFFF] rounded-[2px]"
         style={{
-          border: '0.2mm solid #E5E5E5',
-          padding: '2.5mm 3.5mm',
-          fontFamily: "'Poppins', sans-serif",
+          border: '0.25mm solid #E2E8F0',
+          padding: '3.5mm 4mm',
+          backgroundColor: '#FFFFFF',
         }}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <span
-              style={{
-                fontWeight: 600,
-                fontSize: '6.5pt',
-                letterSpacing: '0.22em',
-                wordSpacing: '0.45em',
-                color: '#8A8A8A',
-                textTransform: 'uppercase',
-                display: 'block',
-                marginBottom: '1.5mm',
-                lineHeight: 1,
-              }}
-            >
-              PAYMENT DETAILS (FOR ADVANCE PAYMENT)
-            </span>
+        <div style={headingStyle}>
+          PAYMENT DETAILS (FOR ADVANCE PAYMENT)
+        </div>
 
-            <table className="w-full border-collapse" style={{ fontSize: '7.8pt' }}>
-              <thead>
-                <tr style={{ borderBottom: '0.2mm solid #E5E5E5', color: '#8A8A8A' }}>
-                  <th
-                    style={{
-                      width: '28mm',
-                      textAlign: 'left',
-                      paddingBottom: '1mm',
-                      fontWeight: 600,
-                      fontSize: '6.5pt',
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Pay Via
-                  </th>
-                  <th
-                    style={{
-                      textAlign: 'left',
-                      paddingBottom: '1mm',
-                      fontWeight: 600,
-                      fontSize: '6.5pt',
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    Details
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F0F0F0]">
-                {effectiveRows.map((r) => (
-                  <tr key={r.id}>
-                    <td
-                      style={{
-                        paddingTop: '1.2mm',
-                        paddingBottom: '1.2mm',
-                        fontWeight: 600,
-                        color: '#0E0E0E',
-                        verticalAlign: 'top',
-                      }}
-                    >
-                      {r.label}
-                    </td>
-                    <td
-                      style={{
-                        paddingTop: '1.2mm',
-                        paddingBottom: '1.2mm',
-                        color: '#262626',
-                        fontFamily: r.label.toLowerCase().includes('upi') ? 'monospace' : "'Poppins', sans-serif",
-                        fontSize: r.label.toLowerCase().includes('upi') ? '8pt' : '7.8pt',
-                      }}
-                    >
-                      {r.value}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Optional UPI QR for Advance Amount */}
-          {showQr && qrUrl && (
-            <div className="flex flex-col items-center shrink-0 pl-2 border-l border-[#E5E5E5]">
-              <img src={qrUrl} alt="UPI QR" className="w-[18mm] h-[18mm] object-contain" />
-              <span
+        <div className="flex items-stretch gap-[5mm] pt-[1.5mm] border-t border-[#F1F5F9]">
+          {/* Left Column: UPI */}
+          {hasUpi && (
+            <div className="flex-1 space-y-[1.2mm]">
+              <span style={itemLabelStyle}>PAY VIA UPI</span>
+              <p
                 style={{
-                  fontSize: '5.5pt',
+                  fontFamily: "'Poppins', sans-serif",
                   fontWeight: 600,
-                  color: '#4A4A4A',
-                  marginTop: '0.8mm',
-                  textAlign: 'center',
-                  letterSpacing: '0.04em',
+                  fontSize: '8.5pt',
+                  color: '#0E0E0E',
+                  lineHeight: 1.3,
                 }}
+                className="font-mono break-all"
               >
-                Scan to pay {formatINR(advanceAmount)}
-              </span>
+                {effectiveUpiVal}
+              </p>
+              {showQr && qrUrl && (
+                <div className="pt-[1mm] flex items-center gap-2">
+                  <img
+                    src={qrUrl}
+                    alt="UPI QR"
+                    style={{ width: '18mm', height: '18mm', objectFit: 'contain' }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '5.5pt',
+                      fontWeight: 600,
+                      color: '#8A8A8A',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Scan to Pay Advance ({formatINR(advanceAmount)})
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Hairline Divider between UPI and Bank Transfer */}
+          {hasUpi && hasBank && (
+            <div className="w-[0.25mm] bg-[#EAEAEA] self-stretch" />
+          )}
+
+          {/* Right Column: Bank Transfer */}
+          {hasBank && (
+            <div className="flex-[1.4] space-y-[1.2mm]">
+              <span style={itemLabelStyle}>BANK TRANSFER</span>
+              <div className="grid grid-cols-2 gap-x-[4mm] gap-y-[1.5mm]">
+                <div>
+                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
+                    Account Name
+                  </span>
+                  <span className="font-semibold text-[#0E0E0E] text-[8pt] block leading-tight truncate">
+                    {bankInfo.acName}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
+                    Bank Name
+                  </span>
+                  <span className="font-semibold text-[#0E0E0E] text-[8pt] block leading-tight truncate">
+                    {bankInfo.bankName}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
+                    Account Number
+                  </span>
+                  <span className="font-mono font-semibold text-[#0E0E0E] text-[8pt] block leading-tight">
+                    {bankInfo.acNo}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
+                    IFSC Code
+                  </span>
+                  <span className="font-mono font-semibold text-[#0E0E0E] text-[8pt] block leading-tight">
+                    {bankInfo.ifsc}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -179,4 +220,3 @@ export const QuotationPaymentBox: React.FC<QuotationPaymentBoxProps> = ({
     </div>
   );
 };
-

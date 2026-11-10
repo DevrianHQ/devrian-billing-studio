@@ -3,7 +3,6 @@ import { BillingDocument, BusinessProfile, LineItem } from '../../../types';
 import { DevrianLogoMark } from '../../common/DevrianLogoMark';
 import { Watermark } from '../Watermark';
 import { HeaderBand } from '../HeaderBand';
-import { QuotationMetaRow } from './QuotationMetaRow';
 import { QuotationPreparedFor } from './QuotationPreparedFor';
 import { QuotationScopeTable } from './QuotationScopeTable';
 import { QuotationTotalsBlock } from './QuotationTotalsBlock';
@@ -281,18 +280,10 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                   showHeaderShapes={business.showHeaderShapes}
                 />
 
-                {/* 2. Quotation Meta Row */}
-                <QuotationMetaRow
-                  documentNumber={doc.documentNumber}
-                  date={doc.date}
-                  validTill={doc.validTill}
-                  projectName={doc.projectName}
-                  status={doc.status}
-                />
-
-                {/* 3. Prepared For */}
+                {/* 2. Prepared For (consistent with PartyColumns on Invoice & Receipt) */}
                 <QuotationPreparedFor
                   clientName={doc.clientName}
+                  projectName={doc.projectName}
                   contactPerson={doc.clientContactPerson}
                   clientAddress={doc.clientAddress}
                   clientPhone={doc.clientPhone}
@@ -371,13 +362,11 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
             {/* CONTINUED SCOPE PAGE (if items overflow Page 1) */}
             {page.type === 'scope_continued' && (
               <>
-                {/* Sleek Continued Header */}
+                {/* Sleek Continued Header matching DocumentPreview */}
                 <div
-                  className="w-full flex items-center justify-between box-border"
+                  className="border-b border-[#2A2A2A] flex justify-between items-center bg-[#0E0E0E] text-white box-border shrink-0"
                   style={{
-                    backgroundColor: '#0E0E0E',
-                    color: '#FFFFFF',
-                    height: '20mm',
+                    height: '18mm',
                     paddingLeft: '18mm',
                     paddingRight: '18mm',
                   }}
@@ -386,16 +375,17 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                     <DevrianLogoMark
                       logoUrl={business.logoDataUrl}
                       whiteLogoUrl={business.whiteLogoDataUrl}
-                      scale={0.72}
+                      scale={0.7}
                     />
-                    <div className="h-4 w-[1px] bg-neutral-700 mx-1" />
+                    <span className="text-[#555555]">·</span>
                     <span
                       style={{
                         fontFamily: "'Poppins', sans-serif",
-                        fontWeight: 700,
-                        fontSize: '7.8pt',
-                        color: '#FFFFFF',
-                        letterSpacing: '0.18em',
+                        fontWeight: 600,
+                        fontSize: '7.5pt',
+                        color: '#E5E5E5',
+                        letterSpacing: '0.15em',
+                        wordSpacing: '0.4em',
                         textTransform: 'uppercase',
                       }}
                     >
@@ -406,7 +396,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                     style={{
                       fontFamily: "'Poppins', sans-serif",
                       fontWeight: 500,
-                      fontSize: '7.2pt',
+                      fontSize: '7pt',
                       color: '#9CA3AF',
                       letterSpacing: '0.15em',
                       textTransform: 'uppercase',
@@ -482,13 +472,11 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
             {/* PAGE 2: DELIVERABLE SCOPE, TERMS & ACCEPTANCE */}
             {page.type === 'terms_and_acceptance' && (
               <>
-                {/* Sleek Continued Header */}
+                {/* Sleek Continued Header matching DocumentPreview */}
                 <div
-                  className="w-full flex items-center justify-between box-border"
+                  className="border-b border-[#2A2A2A] flex justify-between items-center bg-[#0E0E0E] text-white box-border shrink-0"
                   style={{
-                    backgroundColor: '#0E0E0E',
-                    color: '#FFFFFF',
-                    height: '20mm',
+                    height: '18mm',
                     paddingLeft: '18mm',
                     paddingRight: '18mm',
                   }}
@@ -497,39 +485,28 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                     <DevrianLogoMark
                       logoUrl={business.logoDataUrl}
                       whiteLogoUrl={business.whiteLogoDataUrl}
-                      scale={0.72}
+                      scale={0.7}
                     />
-                    <div className="h-4 w-[1px] bg-neutral-700 mx-1" />
-                    <div className="flex items-center gap-2">
-                      <span
-                        style={{
-                          fontFamily: "'Poppins', sans-serif",
-                          fontWeight: 700,
-                          fontSize: '7.8pt',
-                          color: '#FFFFFF',
-                          letterSpacing: '0.18em',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        QUOTATION {doc.documentNumber}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "'Poppins', sans-serif",
-                          fontWeight: 400,
-                          fontSize: '7.2pt',
-                          color: '#A1A1AA',
-                        }}
-                      >
-                        · Deliverable Scope, Terms &amp; Acceptance
-                      </span>
-                    </div>
+                    <span className="text-[#555555]">·</span>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: 600,
+                        fontSize: '7.5pt',
+                        color: '#E5E5E5',
+                        letterSpacing: '0.15em',
+                        wordSpacing: '0.4em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      QUOTATION {doc.documentNumber} (Contd.)
+                    </span>
                   </div>
                   <div
                     style={{
                       fontFamily: "'Poppins', sans-serif",
                       fontWeight: 500,
-                      fontSize: '7.2pt',
+                      fontSize: '7pt',
                       color: '#9CA3AF',
                       letterSpacing: '0.15em',
                       textTransform: 'uppercase',
@@ -541,65 +518,64 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
 
                 {/* Page 2 Content Container */}
                 <div
-                  className="flex-1 flex flex-col justify-between box-border"
+                  className="flex-1 flex flex-col justify-start space-y-[2.6mm] box-border"
                   style={{
-                    paddingTop: '3.5mm',
+                    paddingTop: '3mm',
                     paddingBottom: '2mm',
                   }}
                 >
-                  <div className="space-y-[2.8mm]">
-                    {/* 1. Inclusions & Exclusions */}
-                    {(vis.showInclusions ?? true) && (
-                      <QuotationInclusions
-                        inclusions={doc.inclusions}
-                        exclusions={doc.exclusions}
-                      />
-                    )}
-
-                    {/* 2. Delivery Timeline */}
-                    {(vis.showTimeline ?? true) && (
-                      <QuotationTimeline timeline={doc.deliveryTimeline} />
-                    )}
-
-                    {/* 3. Payment Details Table */}
-                    {vis.showPaymentDetails && (
-                      <QuotationPaymentBox
-                        business={business}
-                        paymentRows={doc.paymentRows}
-                        advanceAmount={advanceAmount}
-                        quotationNumber={doc.documentNumber}
-                        showQr={vis.showUpiQr || doc.paymentDetails.showQrOnDoc}
-                      />
-                    )}
-
-                    {/* 4. Terms & Notes */}
-                    {vis.showTermsAndNotes && (
-                      <QuotationTerms
-                        notes={doc.notes}
-                        heading={doc.customText?.termsSectionHeading || 'TERMS & CONDITIONS'}
-                      />
-                    )}
-
-                    {/* 5. Acceptance Box */}
-                    {(vis.showAcceptance ?? true) && (
-                      <QuotationAcceptanceBox
-                        showClientSignature={vis.showClientSignature ?? true}
-                        clientName={doc.clientName}
-                      />
-                    )}
-
-                    {/* 6. Closing Line & Signature Block */}
-                    <QuotationClosingAndSignature
-                      documentNumber={doc.documentNumber}
-                      date={doc.date}
-                      closingLine={doc.closingLine}
-                      signatureUrl={business.signatureDataUrl}
-                      applySignature={doc.applySignature}
-                      isFinal={doc.isFinal}
-                      customText={doc.customText}
-                      visibility={doc.sectionVisibility}
+                  {/* 1. Inclusions & Exclusions */}
+                  {(vis.showInclusions ?? true) && (
+                    <QuotationInclusions
+                      inclusions={doc.inclusions}
+                      exclusions={doc.exclusions}
                     />
-                  </div>
+                  )}
+
+                  {/* 2. Delivery Timeline */}
+                  {(vis.showTimeline ?? true) && (
+                    <QuotationTimeline timeline={doc.deliveryTimeline} />
+                  )}
+
+                  {/* 3. Payment Details Card */}
+                  {vis.showPaymentDetails && (
+                    <QuotationPaymentBox
+                      business={business}
+                      paymentRows={doc.paymentRows}
+                      advanceAmount={advanceAmount}
+                      quotationNumber={doc.documentNumber}
+                      showQr={vis.showUpiQr || doc.paymentDetails.showQrOnDoc}
+                    />
+                  )}
+
+                  {/* 4. Terms & Notes */}
+                  {vis.showTermsAndNotes && (
+                    <QuotationTerms
+                      notes={doc.notes}
+                      heading={doc.customText?.termsSectionHeading || 'TERMS & CONDITIONS'}
+                    />
+                  )}
+
+                  {/* 5. Acceptance Box */}
+                  {(vis.showAcceptance ?? true) && (
+                    <QuotationAcceptanceBox
+                      showClientSignature={vis.showClientSignature ?? true}
+                      clientName={doc.clientName}
+                    />
+                  )}
+
+                  {/* 6. Closing Line & Signature Block with Dates at the bottom */}
+                  <QuotationClosingAndSignature
+                    documentNumber={doc.documentNumber}
+                    date={doc.date}
+                    validTill={doc.validTill}
+                    closingLine={doc.closingLine}
+                    signatureUrl={business.signatureDataUrl}
+                    applySignature={doc.applySignature}
+                    isFinal={doc.isFinal}
+                    customText={doc.customText}
+                    visibility={doc.sectionVisibility}
+                  />
                 </div>
               </>
             )}
@@ -616,15 +592,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                   wordmarkScale={business.wordmarkScale}
                   showHeaderShapes={business.showHeaderShapes}
                 />
-                <QuotationMetaRow
-                  documentNumber={doc.documentNumber}
-                  date={doc.date}
-                  validTill={doc.validTill}
-                  projectName={doc.projectName}
-                  status={doc.status}
-                />
                 <QuotationPreparedFor
                   clientName={doc.clientName}
+                  projectName={doc.projectName}
                   contactPerson={doc.clientContactPerson}
                   clientAddress={doc.clientAddress}
                   clientPhone={doc.clientPhone}
@@ -694,6 +664,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                   <QuotationClosingAndSignature
                     documentNumber={doc.documentNumber}
                     date={doc.date}
+                    validTill={doc.validTill}
                     closingLine={doc.closingLine}
                     signatureUrl={business.signatureDataUrl}
                     applySignature={doc.applySignature}

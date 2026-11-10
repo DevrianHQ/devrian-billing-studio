@@ -2,6 +2,7 @@ import React from 'react';
 
 interface QuotationPreparedForProps {
   clientName: string;
+  projectName?: string;
   contactPerson?: string;
   clientAddress?: string;
   clientPhone?: string;
@@ -12,6 +13,7 @@ interface QuotationPreparedForProps {
 
 export const QuotationPreparedFor: React.FC<QuotationPreparedForProps> = ({
   clientName,
+  projectName,
   contactPerson,
   clientAddress,
   clientPhone,
@@ -21,20 +23,20 @@ export const QuotationPreparedFor: React.FC<QuotationPreparedForProps> = ({
 }) => {
   const labelStyle: React.CSSProperties = {
     fontFamily: "'Poppins', sans-serif",
-    fontWeight: 500,
+    fontWeight: 400,
     fontSize: '6.5pt',
-    letterSpacing: '0.28em',
-    wordSpacing: '0.6em',
+    letterSpacing: '0.3em',
+    wordSpacing: '0.7em',
     color: '#8A8A8A',
     textTransform: 'uppercase',
     display: 'block',
-    marginBottom: '1.8mm',
+    marginBottom: '2mm',
     lineHeight: 1,
   };
 
   const nameStyle: React.CSSProperties = {
     fontFamily: "'Poppins', sans-serif",
-    fontWeight: 700,
+    fontWeight: 600,
     fontSize: '11pt',
     color: '#0E0E0E',
     lineHeight: 1.2,
@@ -48,7 +50,7 @@ export const QuotationPreparedFor: React.FC<QuotationPreparedForProps> = ({
     lineHeight: 1.35,
   };
 
-  const contactStyle: React.CSSProperties = {
+  const emailStyle: React.CSSProperties = {
     fontFamily: "'Poppins', sans-serif",
     fontWeight: 400,
     fontSize: '8pt',
@@ -67,10 +69,13 @@ export const QuotationPreparedFor: React.FC<QuotationPreparedForProps> = ({
         borderBottom: '0.2mm solid #E5E5E5',
       }}
     >
-      <div className="max-w-[150mm]">
+      <div className="max-w-[140mm]">
         <span style={labelStyle}>{customHeading}</span>
         <div className="space-y-[0.8mm]">
           <p style={nameStyle}>{clientName || 'Client Name'}</p>
+          {projectName && (
+            <p style={{ ...secondaryStyle, fontWeight: 500 }}>Project: {projectName}</p>
+          )}
           {contactPerson && (
             <p style={secondaryStyle}>Attn: {contactPerson}</p>
           )}
@@ -78,12 +83,12 @@ export const QuotationPreparedFor: React.FC<QuotationPreparedForProps> = ({
             <p style={secondaryStyle} className="whitespace-pre-line">{clientAddress}</p>
           )}
           {(clientPhone || clientEmail) && (
-            <p style={contactStyle}>
+            <p style={emailStyle}>
               {[clientPhone, clientEmail].filter(Boolean).join(' | ')}
             </p>
           )}
           {clientGstin && (
-            <p style={contactStyle}>
+            <p style={secondaryStyle} className="font-mono text-[8pt]">
               GSTIN: {clientGstin}
             </p>
           )}
@@ -92,4 +97,3 @@ export const QuotationPreparedFor: React.FC<QuotationPreparedForProps> = ({
     </div>
   );
 };
-

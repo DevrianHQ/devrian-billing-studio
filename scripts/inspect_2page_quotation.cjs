@@ -87,6 +87,8 @@ async function run() {
     await a4Pages[1].screenshot({ path: p2Path });
     console.log(`\nSaved: ${p2Path}`);
     const p2Text = await a4Pages[1].innerText();
+    console.log('\n--- RAW PAGE 2 TEXT ---');
+    console.log(p2Text);
     console.log('\n--- PAGE 2 HIGHLIGHTS ---');
     console.log('Has Continued Header:', p2Text.includes('QUOTATION') && p2Text.includes('Page 2 of 2'));
     console.log('Has Inclusions:', p2Text.includes('INCLUDED:'));
