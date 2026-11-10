@@ -1,5 +1,12 @@
 import { BillingDocument, BusinessProfile, Client } from '../types';
-import { DEFAULT_BUSINESS_PROFILE, SEED_RECEIPT, SEED_INVOICE, SEED_CLIENTS } from './seedData';
+import {
+  DEFAULT_BUSINESS_PROFILE,
+  DEFAULT_QUOTATION_VISIBILITY,
+  DEFAULT_QUOTATION_BLOCKS,
+  SEED_RECEIPT,
+  SEED_INVOICE,
+  SEED_CLIENTS,
+} from './seedData';
 import { isAfter, parseISO } from 'date-fns';
 import { GoogleDriveSyncService } from './googleDriveSync';
 
@@ -157,27 +164,38 @@ export const StorageService = {
         }
 
         // Auto-expire quotations whose validTill date has passed when status is SENT
-        if (doc.type === 'quotation' && doc.status === 'SENT' && doc.validTill) {
-          try {
-            const validDate = parseISO(doc.validTill);
-            if (isAfter(today, validDate)) {
-              updated = true;
-              const log = doc.statusLog || [];
-              return {
-                ...doc,
-                status: 'EXPIRED' as const,
-                statusLog: [
-                  ...log,
-                  {
-                    status: 'EXPIRED' as const,
-                    timestamp: new Date().toISOString(),
-                    note: 'Automatically marked expired based on validity date',
-                  },
-                ],
-              };
+        if (doc.type === 'quotation') {
+          if (!doc.quotationType) {
+            updated = true;
+            doc = {
+              ...doc,
+              quotationType: 'project',
+              quotationBlocks: doc.quotationBlocks || DEFAULT_QUOTATION_BLOCKS,
+            };
+          }
+
+          if (doc.status === 'SENT' && doc.validTill) {
+            try {
+              const validDate = parseISO(doc.validTill);
+              if (isAfter(today, validDate)) {
+                updated = true;
+                const log = doc.statusLog || [];
+                return {
+                  ...doc,
+                  status: 'EXPIRED' as const,
+                  statusLog: [
+                    ...log,
+                    {
+                      status: 'EXPIRED' as const,
+                      timestamp: new Date().toISOString(),
+                      note: 'Automatically marked expired based on validity date',
+                    },
+                  ],
+                };
+              }
+            } catch {
+              // ignore date parsing errors
             }
-          } catch {
-            // ignore date parsing errors
           }
         }
 
@@ -369,7 +387,7 @@ export const StorageService = {
     };
 
     const backup: AppBackupData = {
-      version: '3.0.0',
+      version: '4.0.0',
       exportedAt: new Date().toISOString(),
       businessProfile: exportedProfile,
       documents: this.getDocuments(),
@@ -385,7 +403,7 @@ export const StorageService = {
         throw new Error('Invalid backup file format');
       }
 
-      // Safe migration for older backup versions (v1.0.0, v2.0.0)
+      // Safe migration for older backup versions (v1.0.0, v2.0.0, v3.0.0, v3.1.0)
       const migratedProfile: BusinessProfile = {
         ...DEFAULT_BUSINESS_PROFILE,
         ...backupData.businessProfile,
@@ -404,13 +422,22 @@ export const StorageService = {
         if (d.type === 'quotation') {
           return {
             ...d,
+            quotationType: d.quotationType || 'project',
+            contractStartDate: d.contractStartDate || d.date,
+            minTermMonths: d.minTermMonths || 3,
+            noticePeriodDays: d.noticePeriodDays || 30,
+            autoRenewal: d.autoRenewal ?? true,
+            monthlyDeliverables: d.monthlyDeliverables || [],
+            quotationBlocks: d.quotationBlocks || DEFAULT_QUOTATION_BLOCKS,
             sectionVisibility: {
-              ...DEFAULT_BUSINESS_PROFILE.defaultCustomText?.quotation,
-              ...d.sectionVisibility,
-              showInclusions: d.sectionVisibility.showInclusions ?? true,
-              showTimeline: d.sectionVisibility.showTimeline ?? true,
-              showAcceptance: d.sectionVisibility.showAcceptance ?? true,
-              showClientSignature: d.sectionVisibility.showClientSignature ?? true,
+              ...DEFAULT_QUOTATION_VISIBILITY,
+              ...(d.sectionVisibility || {}),
+              showInclusions: d.sectionVisibility?.showInclusions ?? false,
+              showTimeline: d.sectionVisibility?.showTimeline ?? false,
+              showFreeNotes: d.sectionVisibility?.showFreeNotes ?? false,
+              showAcceptance: d.sectionVisibility?.showAcceptance ?? true,
+              showClientSignature: d.sectionVisibility?.showClientSignature ?? true,
+              hideZeroRows: d.sectionVisibility?.hideZeroRows ?? true,
             },
           };
         }

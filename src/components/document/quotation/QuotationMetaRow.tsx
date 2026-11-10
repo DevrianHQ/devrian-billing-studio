@@ -6,7 +6,6 @@ interface QuotationMetaRowProps {
   documentNumber: string;
   date: string;
   validTill?: string;
-  projectName?: string;
   status: DocumentStatus;
 }
 
@@ -14,7 +13,6 @@ export const QuotationMetaRow: React.FC<QuotationMetaRowProps> = ({
   documentNumber,
   date,
   validTill,
-  projectName,
   status,
 }) => {
   const labelStyle: React.CSSProperties = {
@@ -35,7 +33,7 @@ export const QuotationMetaRow: React.FC<QuotationMetaRowProps> = ({
     fontSize: '9.5pt',
     color: '#0E0E0E',
     display: 'block',
-    marginTop: '1.4mm',
+    marginTop: '1.2mm',
     lineHeight: 1.25,
   };
 
@@ -63,12 +61,12 @@ export const QuotationMetaRow: React.FC<QuotationMetaRowProps> = ({
       style={{
         paddingLeft: '18mm',
         paddingRight: '18mm',
-        paddingTop: '3.5mm',
-        paddingBottom: '3mm',
+        paddingTop: '2.5mm',
+        paddingBottom: '2.5mm',
         borderBottom: '0.2mm solid #E5E5E5',
       }}
     >
-      <div className="grid grid-cols-5 gap-[4mm] items-start">
+      <div className="grid grid-cols-4 gap-[4mm] items-start">
         {/* 1. Quotation Number */}
         <div>
           <span style={labelStyle}>QUOTATION NO.</span>
@@ -93,18 +91,10 @@ export const QuotationMetaRow: React.FC<QuotationMetaRowProps> = ({
           </span>
         </div>
 
-        {/* 4. Project / Service */}
-        <div>
-          <span style={labelStyle}>PROJECT / SERVICE</span>
-          <span style={{ ...valueStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={projectName}>
-            {projectName || 'General Project'}
-          </span>
-        </div>
-
-        {/* 5. Status Badge */}
+        {/* 4. Status Badge */}
         <div>
           <span style={labelStyle}>STATUS</span>
-          <div style={{ marginTop: '1.4mm' }}>
+          <div style={{ marginTop: '1.2mm' }}>
             <span
               style={{
                 display: 'inline-block',
@@ -129,4 +119,3 @@ export const QuotationMetaRow: React.FC<QuotationMetaRowProps> = ({
     </div>
   );
 };
-

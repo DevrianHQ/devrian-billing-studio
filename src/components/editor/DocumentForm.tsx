@@ -7,15 +7,28 @@ import {
   GSTType,
   PaymentDetailRow,
   DocumentCustomText,
+  QuotationType,
+  MonthlyDeliverable,
 } from '../../types';
 import { ClientSelector } from './ClientSelector';
 import { LineItemManager } from './LineItemManager';
+import { QuotationPageLayoutPanel } from './QuotationPageLayoutPanel';
 import { calculateDueDate, calculateValidTillDate, getDaysDifference } from '../../services/dateUtils';
 import {
   DEFAULT_INVOICE_TEXT,
   DEFAULT_RECEIPT_TEXT,
   DEFAULT_QUOTATION_TEXT,
+  DEFAULT_MONTHLY_DELIVERABLES,
 } from '../../services/seedData';
+import {
+  getPolicyAdapterValues,
+  resolveQuotationTermsList,
+  isRetainerTermNeedingReview,
+  PROJECT_DEFAULT_TERMS,
+  MONTHLY_DEFAULT_TERMS,
+} from '../../services/policyAdapter';
+import { computeQuotationFinancials } from '../../services/quotationLayoutEngine';
+import { formatINR } from '../../services/indianCurrency';
 import {
   AlertCircle,
   Percent,
@@ -30,6 +43,9 @@ import {
   Sliders,
   PenTool,
   FileText,
+  Sparkles,
+  Calendar,
+  Layers,
 } from 'lucide-react';
 
 interface DocumentFormProps {
@@ -54,6 +70,77 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
   const isQuotation = doc.type === 'quotation';
 
   const [activeTab, setActiveTab] = useState<'content' | 'text' | 'visibility'>('content');
+
+  // Quotation type switcher
+  const handleQuotationTypeChange = (newType: QuotationType) => {
+    const currentType = doc.quotationType || 'project';
+    if (currentType === newType && doc.quotationType) return;
+
+    let updatedItems = doc.items;
+    if (newType === 'project') {
+      updatedItems = doc.items.map((it) => ({ ...it, billing: 'one_time' as const }));
+    } else if (newType === 'monthly') {
+      updatedItems = doc.items.map((it) => ({ ...it, billing: 'monthly' as const }));
+    }
+
+    const termsTemplate = newType === 'project' ? PROJECT_DEFAULT_TERMS : MONTHLY_DEFAULT_TERMS;
+    const resolvedTerms = resolveQuotationTermsList(termsTemplate, business);
+
+    const updated: BillingDocument = {
+      ...doc,
+      quotationType: newType,
+      items: updatedItems,
+      monthlyDeliverables:
+        (newType === 'monthly' || newType === 'hybrid') && (!doc.monthlyDeliverables || doc.monthlyDeliverables.length === 0)
+          ? [...DEFAULT_MONTHLY_DELIVERABLES]
+          : doc.monthlyDeliverables,
+      contractStartDate: doc.contractStartDate || doc.date,
+      minTermMonths: doc.minTermMonths || 3,
+      noticePeriodDays: doc.noticePeriodDays || 30,
+      autoRenewal: doc.autoRenewal ?? true,
+      notes: resolvedTerms,
+    };
+    recalculateFinancials(updated);
+  };
+
+  // Monthly deliverables helpers
+  const handleAddDeliverable = () => {
+    const current = doc.monthlyDeliverables || [];
+    const newItem: MonthlyDeliverable = {
+      id: `deliv-${Date.now()}`,
+      item: 'New Monthly Deliverable',
+      quantity: '1 / month',
+    };
+    onChange({ ...doc, monthlyDeliverables: [...current, newItem] });
+  };
+
+  const handleUpdateDeliverable = (id: string, updates: Partial<MonthlyDeliverable>) => {
+    const current = doc.monthlyDeliverables || [];
+    const updated = current.map((d) => (d.id === id ? { ...d, ...updates } : d));
+    onChange({ ...doc, monthlyDeliverables: updated });
+  };
+
+  const handleRemoveDeliverable = (id: string) => {
+    const current = doc.monthlyDeliverables || [];
+    const updated = current.filter((d) => d.id !== id);
+    onChange({ ...doc, monthlyDeliverables: updated });
+  };
+
+  const handleMoveDeliverable = (index: number, dir: 'up' | 'down') => {
+    const current = [...(doc.monthlyDeliverables || [])];
+    const targetIndex = dir === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= current.length) return;
+    const temp = current[index];
+    current[index] = current[targetIndex];
+    current[targetIndex] = temp;
+    onChange({ ...doc, monthlyDeliverables: current });
+  };
+
+  const handleResetDeliverables = () => {
+    if (window.confirm('Reset monthly deliverables to DEVRIAN standard 6 items?')) {
+      onChange({ ...doc, monthlyDeliverables: [...DEFAULT_MONTHLY_DELIVERABLES] });
+    }
+  };
 
   // Helper to update fields
   const updateField = <K extends keyof BillingDocument>(field: K, value: BillingDocument[K]) => {
@@ -122,16 +209,13 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
         : Math.max(0, totalWithTax - advance);
       draft.amountReceived = advance;
     } else if (draft.type === 'quotation') {
-      const advPercent = draft.advancePercent ?? 50;
-      let advAmount = 0;
-      if (draft.advanceType === 'flat') {
-        advAmount = draft.advanceToStartWork ?? Math.round((totalWithTax * advPercent) / 100);
-      } else {
-        advAmount = Math.round((totalWithTax * advPercent) / 100);
+      const fin = computeQuotationFinancials(draft);
+      if (draft.advanceType === 'percentage' || !draft.advanceType) {
+        draft.advanceToStartWork = fin.advanceAmount;
       }
-      draft.advanceToStartWork = advAmount;
-      draft.balancePayable = Math.max(0, totalWithTax - advAmount);
-      balanceDue = draft.balancePayable;
+      draft.balancePayable = fin.balancePayable;
+      draft.totalProjectCost = fin.totalProjectCost;
+      balanceDue = fin.isProject ? fin.totalProjectCost : fin.dueToStart;
     } else {
       balanceDue = Math.max(0, totalWithTax - advance);
     }
@@ -469,36 +553,106 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
               />
             </div>
 
-            {/* Pagination & Smart Fit Layout Mode */}
-            <div className="pt-2 border-t border-neutral-800">
-              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
-                Layout / Pagination Mode
-              </label>
-              <div className="grid grid-cols-2 gap-2 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
-                <button
-                  type="button"
-                  onClick={() => updateField('layoutMode', 'auto')}
-                  className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
-                    (doc.layoutMode || 'auto') === 'auto'
-                      ? 'bg-white text-black font-bold shadow'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  Auto (Smart Fit)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField('layoutMode', 'force_one_page')}
-                  className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
-                    doc.layoutMode === 'force_one_page'
-                      ? 'bg-white text-black font-bold shadow'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  Force 1 Page
-                </button>
+            {/* Estimated Delivery for Quotations (short line on Party row) */}
+            {isQuotation && (
+              <div>
+                <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                  Estimated Delivery (Short Line on Document Party Row)
+                </label>
+                <input
+                  type="text"
+                  value={doc.estimatedDelivery || ''}
+                  onChange={(e) => updateField('estimatedDelivery', e.target.value)}
+                  placeholder="e.g. 10 working days after advance and materials"
+                  className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none"
+                />
               </div>
-            </div>
+            )}
+
+            {/* Quotation Type Switcher */}
+            {isQuotation && (
+              <div className="pt-2 border-t border-neutral-800">
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider">
+                    Quotation Model
+                  </label>
+                  <span className="text-[10px] text-amber-400 font-semibold">
+                    {doc.quotationType === 'monthly'
+                      ? 'Monthly Retainer'
+                      : doc.quotationType === 'hybrid'
+                      ? 'Retainer + Setup'
+                      : 'One-time Project'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => handleQuotationTypeChange('project')}
+                    className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
+                      (!doc.quotationType || doc.quotationType === 'project')
+                        ? 'bg-white text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Project
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuotationTypeChange('monthly')}
+                    className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
+                      doc.quotationType === 'monthly'
+                        ? 'bg-amber-400 text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Monthly Retainer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuotationTypeChange('hybrid')}
+                    className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
+                      doc.quotationType === 'hybrid'
+                        ? 'bg-sky-400 text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Hybrid
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isQuotation && (
+              <div className="pt-2 border-t border-neutral-800">
+                <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                  Layout / Pagination Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-neutral-950 p-1 rounded-lg border border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => updateField('layoutMode', 'auto')}
+                    className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
+                      (doc.layoutMode || 'auto') === 'auto'
+                        ? 'bg-white text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Auto (Smart Fit)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateField('layoutMode', 'force_one_page')}
+                    className={`py-1.5 px-2 rounded text-xs font-semibold transition ${
+                      doc.layoutMode === 'force_one_page'
+                        ? 'bg-white text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Force 1 Page
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Client Information */}
@@ -526,10 +680,177 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
             />
           </div>
 
+          {/* Monthly Deliverables for Monthly / Hybrid */}
+          {isQuotation && (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') && (
+            <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
+                    What's Included Each Month (Deliverables)
+                  </label>
+                  <p className="text-[10px] text-neutral-400 mt-0.5">
+                    Unpriced recurring scope rendered as clean 2-column checklist.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleResetDeliverables}
+                    className="px-2 py-1 text-[10px] bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded border border-neutral-700"
+                    title="Reset to DEVRIAN standard 6 deliverables"
+                  >
+                    Reset Defaults
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddDeliverable}
+                    className="px-2.5 py-1 text-[11px] bg-white text-black font-bold rounded flex items-center gap-1 shadow"
+                  >
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {(doc.monthlyDeliverables || []).map((deliv, idx) => {
+                  const hasPlaceholder = /\[.+?\]/.test(deliv.item) || /\[.+?\]/.test(deliv.quantity);
+                  return (
+                    <div
+                      key={deliv.id}
+                      className={`p-2 rounded-lg border bg-neutral-950 flex items-start gap-2 ${
+                        hasPlaceholder ? 'border-red-500/80 ring-1 ring-red-500/40' : 'border-neutral-800'
+                      }`}
+                    >
+                      <span className="text-xs text-neutral-500 font-bold pt-1.5 w-5 text-center">
+                        #{idx + 1}
+                      </span>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="sm:col-span-2">
+                          <input
+                            type="text"
+                            value={deliv.item}
+                            onChange={(e) => handleUpdateDeliverable(deliv.id, { item: e.target.value })}
+                            placeholder="Deliverable title (e.g. Reels, Thumbnails...)"
+                            className="w-full bg-neutral-900 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded outline-none font-medium"
+                          />
+                        </div>
+                        <div>
+                          <input
+                            type="text"
+                            value={deliv.quantity}
+                            onChange={(e) => handleUpdateDeliverable(deliv.id, { quantity: e.target.value })}
+                            placeholder="Qty (e.g. 15 videos / mo)"
+                            className="w-full bg-neutral-900 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveDeliverable(idx, 'up')}
+                            className="p-1 text-neutral-400 hover:text-white disabled:opacity-20"
+                          >
+                            <ArrowUp size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === (doc.monthlyDeliverables || []).length - 1}
+                            onClick={() => handleMoveDeliverable(idx, 'down')}
+                            className="p-1 text-neutral-400 hover:text-white disabled:opacity-20"
+                          >
+                            <ArrowDown size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDeliverable(deliv.id)}
+                            className="p-1 text-neutral-500 hover:text-red-400 ml-1"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Billing & Term Controls */}
+          {isQuotation && (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') && (
+            <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
+              <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
+                Billing & Retainer Terms Strip
+              </label>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                    Contract Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={doc.contractStartDate || doc.date}
+                    onChange={(e) => updateField('contractStartDate', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1.5 rounded outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                    Minimum Commitment
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="1"
+                      max="36"
+                      value={doc.minTermMonths ?? 3}
+                      onChange={(e) => updateField('minTermMonths', parseInt(e.target.value, 10) || 1)}
+                      className="w-16 bg-neutral-950 border border-neutral-800 text-white text-xs px-2 py-1.5 rounded outline-none font-bold text-center"
+                    />
+                    <span className="text-[11px] text-neutral-400">months</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                    Cancellation Notice
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min="0"
+                      max="180"
+                      value={doc.noticePeriodDays ?? 30}
+                      onChange={(e) => updateField('noticePeriodDays', parseInt(e.target.value, 10) || 0)}
+                      className="w-16 bg-neutral-950 border border-neutral-800 text-white text-xs px-2 py-1.5 rounded outline-none font-bold text-center"
+                    />
+                    <span className="text-[11px] text-neutral-400">days notice</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                    Renewal Policy
+                  </label>
+                  <label className="flex items-center gap-2 mt-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={doc.autoRenewal ?? true}
+                      onChange={(e) => updateField('autoRenewal', e.target.checked)}
+                      className="accent-white cursor-pointer"
+                    />
+                    <span className="text-[11px] text-neutral-300">Auto-renews monthly</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Services & Line Items */}
           <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl">
             <LineItemManager
               type={doc.type}
+              quotationType={doc.type === 'quotation' ? (doc.quotationType || 'project') : undefined}
               items={doc.items}
               onChange={(newItems) => {
                 const updated = { ...doc, items: newItems };
@@ -538,6 +859,11 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
               presets={business.itemPresets}
             />
           </div>
+
+          {/* Quotation Page Layout & Flow Panel */}
+          {isQuotation && (
+            <QuotationPageLayoutPanel document={doc} onChange={onChange} />
+          )}
 
           {/* Financials & GST */}
           <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-4">
@@ -627,74 +953,136 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                       }}
                       className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none"
                     />
+
+                    {/* Discount Scope for Monthly / Hybrid */}
+                    {isQuotation && (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') && (
+                      <div className="pt-2 mt-2 border-t border-neutral-800/80">
+                        <label className="block text-[9px] text-neutral-400 uppercase font-semibold mb-1">
+                          Discount Scope
+                        </label>
+                        <div className="flex bg-neutral-950 p-0.5 rounded border border-neutral-800 gap-1 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => updateField('discountScope', 'monthly')}
+                            className={`px-2 py-0.5 rounded font-semibold transition ${
+                              (!doc.discountScope || doc.discountScope === 'monthly')
+                                ? 'bg-amber-400 text-black font-bold'
+                                : 'text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            Monthly Fee
+                          </button>
+                          {doc.quotationType === 'hybrid' && (
+                            <button
+                              type="button"
+                              onClick={() => updateField('discountScope', 'one_time')}
+                              className={`px-2 py-0.5 rounded font-semibold transition ${
+                                doc.discountScope === 'one_time'
+                                  ? 'bg-white text-black font-bold'
+                                  : 'text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              Setup
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => updateField('discountScope', 'both')}
+                            className={`px-2 py-0.5 rounded font-semibold transition ${
+                              doc.discountScope === 'both'
+                                ? 'bg-white text-black font-bold'
+                                : 'text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            Both
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     {isQuotation ? (
-                      <>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-[10px] text-neutral-400 font-semibold uppercase">
-                            Advance to Start Work
+                      (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') ? (
+                        <div>
+                          <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                            Due to Start (Auto-Calculated)
                           </label>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = { ...doc, advanceType: 'percentage' as const };
-                                recalculateFinancials(updated);
-                              }}
-                              className={`p-1 rounded text-[10px] ${
-                                doc.advanceType !== 'flat' ? 'bg-white text-black font-bold' : 'text-neutral-400'
-                              }`}
-                            >
-                              <Percent size={10} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = { ...doc, advanceType: 'flat' as const };
-                                recalculateFinancials(updated);
-                              }}
-                              className={`p-1 rounded text-[10px] ${
-                                doc.advanceType === 'flat' ? 'bg-white text-black font-bold' : 'text-neutral-400'
-                              }`}
-                            >
-                              <Hash size={10} />
-                            </button>
+                          <div className="w-full bg-neutral-950 border border-neutral-800 text-emerald-400 text-xs px-3 py-1.5 rounded font-bold font-mono">
+                            {formatINR(doc.advanceToStartWork || 0)}
                           </div>
+                          <span className="text-[9px] text-neutral-500 mt-1 block">
+                            {doc.quotationType === 'hybrid' ? 'One-time setup + 1st month fee' : '1st Month fee in advance'}
+                          </span>
                         </div>
-                        {doc.advanceType === 'flat' ? (
-                          <input
-                            type="number"
-                            min="0"
-                            value={doc.advanceToStartWork || ''}
-                            placeholder="₹ Flat Advance"
-                            onChange={(e) => {
-                              const val = Math.max(0, parseFloat(e.target.value) || 0);
-                              const updated = { ...doc, advanceToStartWork: val, advanceReceived: val };
-                              recalculateFinancials(updated);
-                            }}
-                            className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-emerald-400"
-                          />
-                        ) : (
-                          <div className="relative">
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] text-neutral-400 font-semibold uppercase">
+                              Advance to Start Work
+                            </label>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = { ...doc, advanceType: 'percentage' as const };
+                                  recalculateFinancials(updated);
+                                }}
+                                className={`p-1 rounded text-[10px] ${
+                                  doc.advanceType !== 'flat' ? 'bg-white text-black font-bold' : 'text-neutral-400'
+                                }`}
+                              >
+                                <Percent size={10} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentTotal = doc.subtotal - (doc.discountAmount || 0) + (doc.totalTaxAmount || 0);
+                                  const flatVal = doc.advanceToStartWork || Math.round((currentTotal * (doc.advancePercent ?? 50)) / 100);
+                                  const updated = { ...doc, advanceType: 'flat' as const, advanceToStartWork: flatVal, advanceReceived: flatVal };
+                                  recalculateFinancials(updated);
+                                }}
+                                className={`p-1 rounded text-[10px] ${
+                                  doc.advanceType === 'flat' ? 'bg-white text-black font-bold' : 'text-neutral-400'
+                                }`}
+                              >
+                                <Hash size={10} />
+                              </button>
+                            </div>
+                          </div>
+                          {doc.advanceType === 'flat' ? (
                             <input
                               type="number"
                               min="0"
-                              max="100"
-                              value={doc.advancePercent ?? 50}
-                              placeholder="50"
+                              value={doc.advanceToStartWork || ''}
+                              placeholder="₹ Flat Advance"
                               onChange={(e) => {
-                                const val = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
-                                const updated = { ...doc, advancePercent: val };
+                                const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                const updated = { ...doc, advanceType: 'flat' as const, advanceToStartWork: val, advanceReceived: val };
                                 recalculateFinancials(updated);
                               }}
-                              className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-emerald-400 pr-8"
+                              className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-emerald-400"
                             />
-                            <span className="absolute right-3 top-1.5 text-xs text-neutral-400 font-bold">%</span>
-                          </div>
-                        )}
-                      </>
+                          ) : (
+                            <div className="relative">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={doc.advancePercent ?? 50}
+                                placeholder="50"
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                                  const updated = { ...doc, advancePercent: val, advanceType: 'percentage' as const };
+                                  recalculateFinancials(updated);
+                                }}
+                                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-emerald-400 pr-8"
+                              />
+                              <span className="absolute right-3 top-1.5 text-xs text-neutral-400 font-bold">%</span>
+                            </div>
+                          )}
+                        </>
+                      )
                     ) : (
                       <>
                         <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
@@ -810,7 +1198,7 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                     <span className="text-[10px] text-neutral-400">Visible</span>
                     <input
                       type="checkbox"
-                      checked={doc.sectionVisibility.showInclusions ?? true}
+                      checked={doc.sectionVisibility.showInclusions ?? false}
                       onChange={(e) => updateVisibility('showInclusions', e.target.checked)}
                       className="accent-white cursor-pointer"
                     />
@@ -870,17 +1258,17 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                 </div>
               </div>
 
-              {/* Delivery Timeline */}
+              {/* Delivery Timeline (Optional) */}
               <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
                 <div className="flex justify-between items-center">
                   <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
-                    Delivery Timeline
+                    Delivery Timeline (Narrative)
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
                     <span className="text-[10px] text-neutral-400">Visible</span>
                     <input
                       type="checkbox"
-                      checked={doc.sectionVisibility.showTimeline ?? true}
+                      checked={doc.sectionVisibility.showTimeline ?? false}
                       onChange={(e) => updateVisibility('showTimeline', e.target.checked)}
                       className="accent-white cursor-pointer"
                     />
@@ -900,12 +1288,40 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                     rows={2}
                     value={doc.deliveryTimeline || ''}
                     onChange={(e) => updateField('deliveryTimeline', e.target.value)}
-                    placeholder="First draft within [X] working days and final delivery within [Y] working days..."
+                    placeholder="e.g. First draft within 4 working days and final delivery within 7 working days..."
                     className={`w-full bg-neutral-950 text-white text-xs px-3 py-2 rounded outline-none border resize-none leading-relaxed ${
                       doc.deliveryTimeline && /\[.+?\]/.test(doc.deliveryTimeline)
                         ? 'border-red-500 ring-1 ring-red-500/50'
                         : 'border-neutral-800 focus:border-white'
                     }`}
+                  />
+                </div>
+              </div>
+
+              {/* Free Text Notes (Optional) */}
+              <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
+                    General Notes (Optional Free Text)
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
+                    <span className="text-[10px] text-neutral-400">Visible</span>
+                    <input
+                      type="checkbox"
+                      checked={doc.sectionVisibility.showFreeNotes ?? false}
+                      onChange={(e) => updateVisibility('showFreeNotes', e.target.checked)}
+                      className="accent-white cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <textarea
+                    rows={2}
+                    value={doc.freeNotes || ''}
+                    onChange={(e) => updateField('freeNotes', e.target.value)}
+                    placeholder="e.g. Additional custom notes or project comments..."
+                    className="w-full bg-neutral-950 text-white text-xs px-3 py-2 rounded outline-none border border-neutral-800 focus:border-white resize-none leading-relaxed"
                   />
                 </div>
               </div>
@@ -1019,44 +1435,61 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              {doc.notes.map((note, index) => (
-                <div key={index} className="flex items-start gap-2 bg-neutral-950 p-2.5 rounded-lg border border-neutral-800">
-                  <span className="text-xs text-neutral-500 font-bold pt-1 w-5 text-center">
-                    {index + 1}.
-                  </span>
-                  <textarea
-                    rows={2}
-                    value={note}
-                    onChange={(e) => updateTermPoint(index, e.target.value)}
-                    className="flex-1 bg-neutral-900 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded outline-none resize-none leading-relaxed"
-                  />
-                  <div className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => moveTermPoint(index, 'up')}
-                      className="p-1 text-neutral-400 hover:text-white disabled:opacity-20"
-                    >
-                      <ArrowUp size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === doc.notes.length - 1}
-                      onClick={() => moveTermPoint(index, 'down')}
-                      className="p-1 text-neutral-400 hover:text-white disabled:opacity-20"
-                    >
-                      <ArrowDown size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeTermPoint(index)}
-                      className="p-1 text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+              {doc.notes.map((note, index) => {
+                const isRetainerClause =
+                  isQuotation &&
+                  (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') &&
+                  isRetainerTermNeedingReview(note);
+
+                return (
+                  <div key={index} className="flex items-start gap-2 bg-neutral-950 p-2.5 rounded-lg border border-neutral-800">
+                    <div className="flex flex-col items-center pt-1 w-6 shrink-0">
+                      <span className="text-xs text-neutral-500 font-bold text-center">
+                        {index + 1}.
+                      </span>
+                      {isRetainerClause && (
+                        <span
+                          className="mt-1 px-1 py-0.5 rounded bg-amber-950/90 border border-amber-600/70 text-[8px] text-amber-300 font-bold uppercase tracking-wider text-center"
+                          title="Retainer-specific rule: not yet in Policies module storage"
+                        >
+                          Review
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={note}
+                      onChange={(e) => updateTermPoint(index, e.target.value)}
+                      className="flex-1 bg-neutral-900 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded outline-none resize-none leading-relaxed"
+                    />
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        disabled={index === 0}
+                        onClick={() => moveTermPoint(index, 'up')}
+                        className="p-1 text-neutral-400 hover:text-white disabled:opacity-20"
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === doc.notes.length - 1}
+                        onClick={() => moveTermPoint(index, 'down')}
+                        className="p-1 text-neutral-400 hover:text-white disabled:opacity-20"
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeTermPoint(index)}
+                        className="p-1 text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Closing Line */}
@@ -1338,21 +1771,31 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
             {isQuotation && (
               <>
                 <label className="flex items-center justify-between pt-2 cursor-pointer">
-                  <span>Show Inclusions & Exclusions Box</span>
+                  <span>Show Inclusions & Exclusions Box (Optional)</span>
                   <input
                     type="checkbox"
-                    checked={doc.sectionVisibility.showInclusions ?? true}
+                    checked={doc.sectionVisibility.showInclusions ?? false}
                     onChange={(e) => updateVisibility('showInclusions', e.target.checked)}
                     className="accent-white"
                   />
                 </label>
 
                 <label className="flex items-center justify-between pt-2 cursor-pointer">
-                  <span>Show Delivery Timeline Box</span>
+                  <span>Show Delivery Timeline Box (Optional)</span>
                   <input
                     type="checkbox"
-                    checked={doc.sectionVisibility.showTimeline ?? true}
+                    checked={doc.sectionVisibility.showTimeline ?? false}
                     onChange={(e) => updateVisibility('showTimeline', e.target.checked)}
+                    className="accent-white"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between pt-2 cursor-pointer">
+                  <span>Show Free Notes Box (Optional)</span>
+                  <input
+                    type="checkbox"
+                    checked={doc.sectionVisibility.showFreeNotes ?? false}
+                    onChange={(e) => updateVisibility('showFreeNotes', e.target.checked)}
                     className="accent-white"
                   />
                 </label>
@@ -1373,6 +1816,16 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                     type="checkbox"
                     checked={doc.sectionVisibility.showClientSignature ?? true}
                     onChange={(e) => updateVisibility('showClientSignature', e.target.checked)}
+                    className="accent-white"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between pt-2 cursor-pointer">
+                  <span>Hide Rows with Zero Value in Summary</span>
+                  <input
+                    type="checkbox"
+                    checked={doc.sectionVisibility.hideZeroRows ?? true}
+                    onChange={(e) => updateVisibility('hideZeroRows', e.target.checked)}
                     className="accent-white"
                   />
                 </label>

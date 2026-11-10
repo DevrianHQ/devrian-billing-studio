@@ -1,4 +1,40 @@
-import { BusinessProfile, BillingDocument, Client, DocumentCustomText, DocumentSectionVisibility } from '../types';
+import {
+  BusinessProfile,
+  BillingDocument,
+  Client,
+  DocumentCustomText,
+  DocumentSectionVisibility,
+  MonthlyDeliverable,
+  QuotationBlockConfig,
+  QuotationType,
+} from '../types';
+
+export const DEFAULT_MONTHLY_DELIVERABLES: MonthlyDeliverable[] = [
+  { id: 'del-1', item: 'Instagram Reels', quantity: '8 / month' },
+  { id: 'del-2', item: 'Posts / Carousels', quantity: '12 / month' },
+  { id: 'del-3', item: 'Stories', quantity: 'as per plan' },
+  { id: 'del-4', item: 'Content calendar', quantity: '1' },
+  { id: 'del-5', item: 'Monthly performance report', quantity: '1' },
+];
+
+export const DEFAULT_QUOTATION_BLOCKS: QuotationBlockConfig[] = [
+  { id: 'deliverables', page: 1, order: 1, visible: true },
+  { id: 'scope_table', page: 1, order: 2, visible: true },
+  { id: 'billing_strip', page: 1, order: 3, visible: true },
+  { id: 'payment_summary', page: 1, order: 4, visible: true },
+  { id: 'gst_line', page: 1, order: 5, visible: true },
+  { id: 'inclusions_exclusions', page: 1, order: 6, visible: false },
+  { id: 'delivery_timeline', page: 1, order: 7, visible: false },
+  { id: 'notes', page: 1, order: 8, visible: false },
+  { id: 'terms_and_notes', page: 1, order: 9, visible: true },
+  { id: 'acceptance', page: 1, order: 10, visible: true },
+];
+
+export function getQuotationEyebrow(type: QuotationType = 'project'): string {
+  if (type === 'monthly') return 'QUOTATION · MONTHLY RETAINER';
+  if (type === 'hybrid') return 'QUOTATION · RETAINER + SETUP';
+  return 'QUOTATION · ONE-TIME PROJECT';
+}
 
 export const DEFAULT_INVOICE_TEXT: DocumentCustomText = {
   tagline: 'Building Attention, Authority & Growth for Modern Businesses',
@@ -60,25 +96,23 @@ export const DEFAULT_RECEIPT_TEXT: DocumentCustomText = {
   signatureDisclaimer: 'Not valid for banking, cheque or legal-instrument purposes',
 };
 
-export const DEFAULT_INCLUSIONS = '[e.g. editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.]';
-export const DEFAULT_EXCLUSIONS = '[e.g. shooting, voice-over, stock licences, ad spend, extra revisions.]';
-export const DEFAULT_DELIVERY_TIMELINE = 'First draft within [X] working days and final delivery within [Y] working days after the advance and all required materials are received.';
+export const DEFAULT_INCLUSIONS = '';
+export const DEFAULT_EXCLUSIONS = '';
+export const DEFAULT_DELIVERY_TIMELINE = '';
 
 export const DEFAULT_QUOTATION_TERMS = [
   'This quotation is valid until the date mentioned above. Prices may change after that.',
-  '50% advance is required to begin work. The balance is payable within 48 hours after project completion and approval.',
+  '{{advance_percent}}% advance is required to begin work. The balance is payable within {{balance_due_hours}} hours after project completion and approval.',
   'Timelines start after the advance and all required materials (footage, scripts, logos and other assets) are received.',
-  'Revisions, delivery and refund terms are as per the signed proposal / DEVRIAN Terms & Conditions.',
-  'Raw files and source files are shared only after full payment, unless agreed otherwise.',
+  'Scope, revisions, ownership, refund and all other terms are as per the signed Proposal and DEVRIAN Terms & Conditions v{{tnc_version}}.',
   'Any work outside the scope above will be quoted separately.',
 ];
 
-export const getDefaultQuotationTerms = (advancePercent: number = 50, balanceDueHours: number = 48): string[] => [
+export const getDefaultQuotationTerms = (advancePercent: number = 50, balanceDueHours: number = 48, tncVersion: string = '1.0'): string[] => [
   'This quotation is valid until the date mentioned above. Prices may change after that.',
   `${advancePercent}% advance is required to begin work. The balance is payable within ${balanceDueHours} hours after project completion and approval.`,
   'Timelines start after the advance and all required materials (footage, scripts, logos and other assets) are received.',
-  'Revisions, delivery and refund terms are as per the signed proposal / DEVRIAN Terms & Conditions.',
-  'Raw files and source files are shared only after full payment, unless agreed otherwise.',
+  `Scope, revisions, ownership, refund and all other terms are as per the signed Proposal and DEVRIAN Terms & Conditions v${tncVersion}.`,
   'Any work outside the scope above will be quoted separately.',
 ];
 
@@ -129,6 +163,26 @@ export const DEFAULT_VISIBILITY: DocumentSectionVisibility = {
   showTimeline: true,
   showAcceptance: true,
   showClientSignature: true,
+};
+
+export const DEFAULT_QUOTATION_VISIBILITY: DocumentSectionVisibility = {
+  showDiscount: true,
+  showAdvance: true,
+  showGstLine: true,
+  showPaymentDetails: true,
+  showTermsAndNotes: true,
+  showClosingLine: true,
+  showSignature: true,
+  showAuditLine: true,
+  showLegalDisclaimer: true,
+  showAmountInWords: false,
+  showUpiQr: false,
+  showInclusions: false, // Lean quotation: hidden by default
+  showTimeline: false, // Lean quotation: hidden by default
+  showFreeNotes: false, // Lean quotation: hidden by default
+  showAcceptance: true,
+  showClientSignature: true,
+  hideZeroRows: true,
 };
 
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
@@ -360,8 +414,21 @@ export const SEED_QUOTATION: BillingDocument = {
     ...DEFAULT_QUOTATION_TEXT,
   },
   sectionVisibility: {
-    ...DEFAULT_VISIBILITY,
+    ...DEFAULT_QUOTATION_VISIBILITY,
   },
+  quotationType: 'project',
+  contractStartDate: '2026-11-15',
+  minTermMonths: 3,
+  noticePeriodDays: 30,
+  paymentDueDescription: 'In advance, before each cycle begins',
+  autoRenewalDescription: 'Auto-renews monthly until cancelled',
+  discountScope: 'both',
+  showMinimumCommitmentTotal: true,
+  monthlyDeliverables: [...DEFAULT_MONTHLY_DELIVERABLES],
+  quotationBlocks: [...DEFAULT_QUOTATION_BLOCKS],
+  isCustomBlockLayout: false,
+  isLeanQuotation: true,
+  estimatedDelivery: '5-7 working days after advance and materials',
   paymentRows: [
     {
       id: 'p1',
@@ -391,6 +458,7 @@ export const SEED_QUOTATION: BillingDocument = {
       qty: 15,
       rate: 800,
       amount: 12000,
+      billing: 'one_time',
     },
     {
       id: 'seed-qt-item-2',
@@ -399,6 +467,7 @@ export const SEED_QUOTATION: BillingDocument = {
       qty: 1,
       rate: 8000,
       amount: 8000,
+      billing: 'one_time',
     },
   ],
   subtotal: 20000,

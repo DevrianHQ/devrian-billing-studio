@@ -42,7 +42,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   onExportCSV,
 }) => {
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | DocumentType>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | DocumentType | 'quotation_project' | 'quotation_monthly' | 'quotation_hybrid'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | DocumentStatus>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -71,7 +71,20 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         (d.projectName && d.projectName.toLowerCase().includes(q));
 
       // Type filter
-      const matchType = typeFilter === 'all' || d.type === typeFilter;
+      let matchType = true;
+      if (typeFilter === 'all') {
+        matchType = true;
+      } else if (typeFilter === 'invoice' || typeFilter === 'receipt') {
+        matchType = d.type === typeFilter;
+      } else if (typeFilter === 'quotation') {
+        matchType = d.type === 'quotation';
+      } else if (typeFilter === 'quotation_project') {
+        matchType = d.type === 'quotation' && (!d.quotationType || d.quotationType === 'project');
+      } else if (typeFilter === 'quotation_monthly') {
+        matchType = d.type === 'quotation' && d.quotationType === 'monthly';
+      } else if (typeFilter === 'quotation_hybrid') {
+        matchType = d.type === 'quotation' && d.quotationType === 'hybrid';
+      }
 
       // Status filter
       const matchStatus = statusFilter === 'all' || d.status === statusFilter;
@@ -134,7 +147,10 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <option value="all">All Document Types</option>
             <option value="invoice">Invoices</option>
             <option value="receipt">Payment Receipts</option>
-            <option value="quotation">Quotations</option>
+            <option value="quotation">Quotations (All)</option>
+            <option value="quotation_project">Quotations · One-time Project</option>
+            <option value="quotation_monthly">Quotations · Monthly Retainer</option>
+            <option value="quotation_hybrid">Quotations · Hybrid</option>
           </select>
         </div>
 
@@ -246,6 +262,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                           {doc.type === 'quotation' && <FileCheck size={12} className="text-amber-400" />}
                           <span className="capitalize">{doc.type}</span>
                         </span>
+                        {doc.type === 'quotation' && (
+                          <div className="text-[9px] text-amber-300 font-semibold font-mono mt-0.5 uppercase tracking-wider">
+                            {doc.quotationType === 'monthly'
+                              ? 'Retainer'
+                              : doc.quotationType === 'hybrid'
+                              ? 'Hybrid'
+                              : 'Project'}
+                          </div>
+                        )}
                       </td>
 
                       {/* Date */}

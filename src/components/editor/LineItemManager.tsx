@@ -1,10 +1,11 @@
 import React from 'react';
-import { LineItem, BusinessProfile, DocumentType } from '../../types';
+import { LineItem, BusinessProfile, DocumentType, QuotationType } from '../../types';
 import { formatINR } from '../../services/indianCurrency';
 import { Plus, Trash2, ArrowUp, ArrowDown, Sparkles } from 'lucide-react';
 
 interface LineItemManagerProps {
   type: DocumentType;
+  quotationType?: QuotationType;
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
   presets: BusinessProfile['itemPresets'];
@@ -12,11 +13,14 @@ interface LineItemManagerProps {
 
 export const LineItemManager: React.FC<LineItemManagerProps> = ({
   type,
+  quotationType,
   items,
   onChange,
   presets,
 }) => {
   const isReceipt = type === 'receipt';
+  const isQuotation = type === 'quotation';
+  const isHybridQuotation = isQuotation && quotationType === 'hybrid';
 
   const addItem = (presetTitle?: string, presetRate?: number) => {
     const newItem: LineItem = {
@@ -27,6 +31,7 @@ export const LineItemManager: React.FC<LineItemManagerProps> = ({
       rate: presetRate || 0,
       amount: presetRate || 0,
       mode: isReceipt ? 'UPI' : undefined,
+      billing: isHybridQuotation ? 'monthly' : quotationType === 'monthly' ? 'monthly' : 'one_time',
     };
     onChange([...items, newItem]);
   };
@@ -225,7 +230,7 @@ export const LineItemManager: React.FC<LineItemManagerProps> = ({
                   </div>
                   <div>
                     <label className="block text-[9px] text-neutral-400 uppercase font-semibold mb-0.5">
-                      Rate (₹)
+                      {quotationType === 'monthly' ? 'Monthly Rate (₹)' : 'Rate (₹)'}
                     </label>
                     <input
                       type="number"
@@ -240,7 +245,7 @@ export const LineItemManager: React.FC<LineItemManagerProps> = ({
                   </div>
                   <div>
                     <label className="block text-[9px] text-neutral-400 uppercase font-semibold mb-0.5">
-                      Line Total
+                      {quotationType === 'monthly' ? 'Monthly Total' : 'Line Total'}
                     </label>
                     <div className="w-full bg-neutral-950/60 border border-neutral-800/80 text-white text-xs px-2 py-1 rounded text-right font-bold text-neutral-200">
                       {formatINR(item.amount)}
@@ -249,6 +254,39 @@ export const LineItemManager: React.FC<LineItemManagerProps> = ({
                 </>
               )}
             </div>
+
+            {/* Hybrid quotation billing attribute selector */}
+            {isHybridQuotation && (
+              <div className="flex items-center justify-between pl-7 pt-1.5 border-t border-neutral-800/60">
+                <span className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wider">
+                  Billing Stream:
+                </span>
+                <div className="flex bg-neutral-950 p-0.5 rounded border border-neutral-800 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => updateItem(item.id, { billing: 'one_time' })}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition ${
+                      item.billing === 'one_time'
+                        ? 'bg-white text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    One-time Setup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateItem(item.id, { billing: 'monthly' })}
+                    className={`px-2 py-0.5 rounded text-[10px] font-semibold transition ${
+                      item.billing !== 'one_time'
+                        ? 'bg-amber-400 text-black font-bold shadow'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    Monthly Retainer
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

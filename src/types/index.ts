@@ -1,5 +1,7 @@
 export type DocumentType = 'invoice' | 'receipt' | 'quotation';
 
+export type QuotationType = 'project' | 'monthly' | 'hybrid';
+
 export type DocumentStatus =
   | 'PAID'
   | 'UNPAID'
@@ -29,9 +31,11 @@ export interface LineItem {
   description: string;
   subDescription?: string;
   qty: number;
+  quantity?: number;
   rate: number;
   amount: number;
   mode?: string; // For receipts
+  billing?: 'one_time' | 'monthly'; // For Quotations (Project forces one_time, Monthly forces monthly, Hybrid lets user choose)
 }
 
 export interface Client {
@@ -96,6 +100,47 @@ export interface DocumentCustomText {
   signatureDisclaimer: string; // "Not valid for banking, cheque or legal-instrument purposes"
 }
 
+export interface MonthlyDeliverable {
+  id: string;
+  item: string;
+  quantity: string;
+}
+
+export type QuotationBlockId =
+  | 'deliverables'          // "WHAT'S INCLUDED EACH MONTH" (Monthly/Hybrid)
+  | 'scope_table'           // "SCOPE OF WORK" (Project) / "PRICING" (Monthly/Hybrid)
+  | 'billing_strip'         // "BILLING & TERM" (Monthly/Hybrid)
+  | 'payment_summary'       // Side-by-side Payment Details + Summary & TOTAL / DUE TO START bar
+  | 'gst_line'              // Italic GST Notice line
+  | 'inclusions_exclusions' // Optional
+  | 'delivery_timeline'     // Optional
+  | 'notes'                 // Optional Free Notes
+  | 'terms_and_notes'       // TERMS & NOTES box
+  | 'acceptance';           // ACCEPTANCE box
+
+export interface QuotationBlockConfig {
+  id: QuotationBlockId;
+  page: 1 | 2;
+  order: number;
+  visible: boolean;
+}
+
+export type QuotationMovableSection =
+  | 'notes'
+  | 'inclusions_exclusions'
+  | 'delivery_timeline'
+  | 'terms_and_notes'
+  | 'acceptance';
+
+export interface QuotationPagePlan {
+  mode: 'ask_me' | 'fit_one_page' | 'manual';
+  page2Sections: QuotationMovableSection[];
+  continueLineItemsOnPage2: boolean;
+  splitLineItemIndex?: number;
+  rememberForDocument: boolean;
+  appliedScale?: number;
+}
+
 export interface DocumentSectionVisibility {
   showDiscount: boolean;
   showAdvance: boolean;
@@ -110,8 +155,10 @@ export interface DocumentSectionVisibility {
   showUpiQr: boolean;
   showInclusions?: boolean;
   showTimeline?: boolean;
+  showFreeNotes?: boolean;
   showAcceptance?: boolean;
   showClientSignature?: boolean;
+  hideZeroRows?: boolean;
 }
 
 export interface BusinessProfile {
@@ -176,6 +223,9 @@ export interface BusinessProfile {
   quotationValidityDays?: number; // default 15
   advancePercentDefault?: number; // default 50
   balanceDueHoursDefault?: number; // default 48
+  minTermMonthsDefault?: number; // default 3
+  noticePeriodDaysDefault?: number; // default 30
+  replyTimeHoursDefault?: number; // default 24
   defaultInclusions?: string;
   defaultExclusions?: string;
   defaultDeliveryTimeline?: string;
@@ -245,9 +295,31 @@ export interface BillingDocument {
   balancePayable?: number;
   
   // Quotation specific content
+  quotationType?: QuotationType; // 'project' | 'monthly' | 'hybrid' (defaults to 'project')
+  monthlyDeliverables?: MonthlyDeliverable[];
+  billingCycle?: string; // default 'Monthly'
+  contractStartDate?: string; // YYYY-MM-DD
+  minTermMonths?: number; // default 3
+  paymentDueDescription?: string; // default 'In advance, before each cycle begins'
+  noticePeriodDays?: number; // default 30
+  autoRenewal?: boolean; // default true
+  autoRenewalDescription?: string; // default 'Auto-renews monthly until cancelled'
+  discountScope?: 'one_time' | 'monthly' | 'both'; // default 'both'
+  showMinimumCommitmentTotal?: boolean; // default true
+  quotationBlocks?: QuotationBlockConfig[];
+  isCustomBlockLayout?: boolean;
+  oneTimeSetupTotal?: number;
+  monthlyFeeTotal?: number;
+  dueToStartAmount?: number;
+  minimumCommitmentTotal?: number;
   inclusions?: string;
   exclusions?: string;
   deliveryTimeline?: string;
+  estimatedDelivery?: string;
+  freeNotes?: string;
+  quotationLayoutMode?: 'ask_me' | 'fit_one_page' | 'manual';
+  quotationPagePlan?: QuotationPagePlan;
+  isLeanQuotation?: boolean;
   statusLog?: { status: DocumentStatus; timestamp: string; note?: string }[];
   supersedesId?: string;
   supersededBy?: string;

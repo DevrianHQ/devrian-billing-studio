@@ -3,6 +3,7 @@ import { BillingDocument, DocumentStatus } from '../../types';
 import { formatINR } from '../../services/indianCurrency';
 import { formatDisplayDate } from '../../services/dateUtils';
 import { calculateDocumentFinancials, getDocumentDisplayAmount } from '../../services/financialCalculations';
+import { computeQuotationFinancials } from '../../services/quotationLayoutEngine';
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO, isAfter } from 'date-fns';
 import {
   TrendingUp,
@@ -14,6 +15,7 @@ import {
   FileCheck,
   CheckCircle2,
   Users,
+  Repeat,
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -73,6 +75,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     let acceptedThisMonth = 0;
     let acceptedAllTime = 0;
     let pipelineValue = 0;
+    let monthlyRecurringQuoted = 0;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -116,6 +119,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           pipelineValue += docAmount;
         }
       }
+
+      // Monthly recurring value quoted: sum of monthly fee on active SENT or ACCEPTED retainers
+      if ((d.status === 'SENT' || d.status === 'ACCEPTED') && (d.quotationType === 'monthly' || d.quotationType === 'hybrid')) {
+        const fin = computeQuotationFinancials(d);
+        monthlyRecurringQuoted += fin.monthlyTotal;
+      }
     });
 
     const convRateThisMonth = sentThisMonth > 0 ? Math.round((acceptedThisMonth / sentThisMonth) * 100) : 0;
@@ -129,6 +138,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       convRateThisMonth,
       convRateAllTime,
       pipelineValue,
+      monthlyRecurringQuoted,
     };
   }, [documents, currentMonthStart, currentMonthEnd]);
 
@@ -272,7 +282,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Quotation Pipeline & Performance
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* 1. Quotations Sent */}
           <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
             <div className="flex items-center justify-between text-neutral-400">
@@ -281,7 +291,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="text-2xl font-bold text-white tracking-tight">
               {quotationStats.sentThisMonth}
-              <span className="text-xs font-normal text-neutral-400 ml-2">/ {quotationStats.sentAllTime} all time</span>
+              <span className="text-xs font-normal text-neutral-400 ml-1.5">/ {quotationStats.sentAllTime} all</span>
             </div>
             <p className="text-[10px] text-neutral-500">Sent to prospective clients</p>
           </div>
@@ -294,7 +304,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="text-2xl font-bold text-emerald-400 tracking-tight">
               {quotationStats.acceptedThisMonth}
-              <span className="text-xs font-normal text-neutral-400 ml-2">/ {quotationStats.acceptedAllTime} all time</span>
+              <span className="text-xs font-normal text-neutral-400 ml-1.5">/ {quotationStats.acceptedAllTime} all</span>
             </div>
             <p className="text-[10px] text-neutral-500">Client approvals</p>
           </div>
@@ -302,26 +312,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* 3. Conversion Rate */}
           <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
             <div className="flex items-center justify-between text-neutral-400">
-              <span className="text-[10px] font-bold uppercase tracking-wider">Conversion Rate</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Conversion</span>
               <TrendingUp size={15} className="text-white" />
             </div>
             <div className="text-2xl font-bold text-white tracking-tight">
               {quotationStats.convRateThisMonth}%
-              <span className="text-xs font-normal text-neutral-400 ml-2">({quotationStats.convRateAllTime}% all time)</span>
+              <span className="text-xs font-normal text-neutral-400 ml-1.5">({quotationStats.convRateAllTime}% all)</span>
             </div>
-            <p className="text-[10px] text-neutral-500">Accepted divided by sent</p>
+            <p className="text-[10px] text-neutral-500">Accepted / sent</p>
           </div>
 
           {/* 4. Pipeline Value */}
           <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
             <div className="flex items-center justify-between text-neutral-400">
-              <span className="text-[10px] font-bold uppercase tracking-wider">Pipeline Value</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Pipeline</span>
               <CreditCard size={15} className="text-amber-400" />
             </div>
-            <div className="text-2xl font-bold text-amber-400 tracking-tight">
+            <div className="text-xl font-bold text-amber-400 tracking-tight">
               {formatINR(quotationStats.pipelineValue)}
             </div>
-            <p className="text-[10px] text-neutral-500">Active sent, non-expired quotations</p>
+            <p className="text-[10px] text-neutral-500">Active non-expired quotes</p>
+          </div>
+
+          {/* 5. Monthly Recurring Quoted */}
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-neutral-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Monthly Recurring</span>
+              <Repeat size={15} className="text-emerald-400" />
+            </div>
+            <div className="text-xl font-bold text-emerald-400 tracking-tight">
+              {formatINR(quotationStats.monthlyRecurringQuoted)}
+              <span className="text-xs font-normal text-neutral-400 ml-1">/mo</span>
+            </div>
+            <p className="text-[10px] text-neutral-500">Active retainer value quoted</p>
           </div>
         </div>
       </div>

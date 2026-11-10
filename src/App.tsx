@@ -6,6 +6,7 @@ import {
   DocumentType,
   DocumentStatus,
   DocumentCustomText,
+  LineItem,
 } from './types';
 import { StorageService, AppBackupData } from './services/storage';
 import { GoogleDriveSyncService } from './services/googleDriveSync';
@@ -17,7 +18,10 @@ import {
   DEFAULT_QUOTATION_TEXT,
   DEFAULT_VISIBILITY,
   getDefaultQuotationTerms,
+  DEFAULT_MONTHLY_DELIVERABLES,
+  DEFAULT_QUOTATION_BLOCKS,
 } from './services/seedData';
+import { computeQuotationFinancials } from './services/quotationLayoutEngine';
 import { Navbar, AppPage } from './components/common/Navbar';
 import { DocumentEditor } from './components/editor/DocumentEditor';
 import { HistoryView } from './components/history/HistoryView';
@@ -257,6 +261,13 @@ export const App: React.FC = () => {
         advanceType: type === 'quotation' ? 'percentage' : undefined,
         advanceToStartWork: type === 'quotation' ? initialAdvanceToStart : undefined,
         balancePayable: type === 'quotation' ? Math.max(0, initialSubtotal - initialAdvanceToStart) : undefined,
+        quotationType: type === 'quotation' ? 'project' : undefined,
+        contractStartDate: type === 'quotation' ? today : undefined,
+        minTermMonths: type === 'quotation' ? 3 : undefined,
+        noticePeriodDays: type === 'quotation' ? 30 : undefined,
+        autoRenewal: type === 'quotation' ? true : undefined,
+        monthlyDeliverables: type === 'quotation' ? [...DEFAULT_MONTHLY_DELIVERABLES] : undefined,
+        quotationBlocks: type === 'quotation' ? [...DEFAULT_QUOTATION_BLOCKS] : undefined,
         inclusions: type === 'quotation' ? (profile.defaultInclusions || '[e.g. editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.]') : undefined,
         exclusions: type === 'quotation' ? (profile.defaultExclusions || '[e.g. shooting, voice-over, stock licences, ad spend, extra revisions.]') : undefined,
         deliveryTimeline: type === 'quotation' ? (profile.defaultDeliveryTimeline || 'First draft within [X] working days and final delivery within [Y] working days after the advance and all required materials are received.') : undefined,
@@ -407,9 +418,35 @@ export const App: React.FC = () => {
       const invoiceNum = generateNextDocumentNumber('invoice', profile.invoicePattern, documents);
       const newInvoiceId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
-      const netTaxable = Math.max(0, quotationDoc.subtotal - (quotationDoc.discountAmount || 0));
+      const isRetainer = quotationDoc.quotationType === 'monthly' || quotationDoc.quotationType === 'hybrid';
+      const fin = computeQuotationFinancials(quotationDoc);
+      const monthYearName = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      let invoiceItems: LineItem[] = [];
+      if (isRetainer) {
+        if (quotationDoc.quotationType === 'hybrid') {
+          const setupItems = quotationDoc.items.filter((i) => i.billing === 'one_time');
+          if (setupItems.length > 0) {
+            invoiceItems.push(...setupItems.map(i => ({ ...i, id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}` })));
+          }
+        }
+        invoiceItems.push({
+          id: `item-${Date.now()}-first-mo`,
+          description: `${quotationDoc.projectName || 'Monthly Retainer'} — ${monthYearName}`,
+          subDescription: `First month retainer fee (as per quotation ${quotationDoc.documentNumber})`,
+          qty: 1,
+          rate: fin.firstMonthFeeNet,
+          amount: fin.firstMonthFeeNet,
+        });
+      } else {
+        invoiceItems = quotationDoc.items.map(i => ({ ...i, id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}` }));
+      }
+
+      const invSubtotal = invoiceItems.reduce((acc, i) => acc + i.amount, 0);
+      const netTaxable = Math.max(0, invSubtotal - (quotationDoc.discountAmount || 0));
       const totalTax = quotationDoc.gstEnabled ? (quotationDoc.totalTaxAmount || 0) : 0;
       const totalCost = netTaxable + totalTax;
+      const invBalanceDue = isRetainer ? fin.dueToStart : totalCost;
 
       // Mark Quotation as ACCEPTED if not already, and store link to converted invoice
       const updatedQuotation: BillingDocument = {
@@ -440,8 +477,10 @@ export const App: React.FC = () => {
         isFinal: false,
         applySignature: false,
         sourceQuotationId: quotationDoc.id,
+        items: invoiceItems,
+        subtotal: invSubtotal,
         advanceReceived: 0,
-        balanceDue: totalCost,
+        balanceDue: invBalanceDue,
         totalProjectCost: undefined,
         customText: {
           ...DEFAULT_INVOICE_TEXT,
@@ -529,17 +568,28 @@ export const App: React.FC = () => {
     (quotationDoc: BillingDocument) => {
       const today = getTodayISODate();
       const receiptNum = generateNextDocumentNumber('receipt', profile.receiptPattern, documents);
+      const isRetainer = quotationDoc.quotationType === 'monthly' || quotationDoc.quotationType === 'hybrid';
+      const fin = computeQuotationFinancials(quotationDoc);
+
       const netTaxable = Math.max(0, quotationDoc.subtotal - (quotationDoc.discountAmount || 0));
       const totalTax = quotationDoc.gstEnabled ? (quotationDoc.totalTaxAmount || 0) : 0;
-      const totalProjectCost = netTaxable + totalTax;
+      const totalProjectCost = isRetainer ? fin.minimumCommitmentTotal : (netTaxable + totalTax);
 
       const advancePercent = quotationDoc.advancePercent ?? profile.advancePercentDefault ?? 50;
-      const advanceAmount =
-        quotationDoc.advanceToStartWork !== undefined && quotationDoc.advanceToStartWork > 0
-          ? quotationDoc.advanceToStartWork
-          : Math.round((totalProjectCost * advancePercent) / 100);
+      const advanceAmount = isRetainer
+        ? fin.dueToStart
+        : quotationDoc.advanceToStartWork !== undefined && quotationDoc.advanceToStartWork > 0
+        ? quotationDoc.advanceToStartWork
+        : Math.round((totalProjectCost * advancePercent) / 100);
 
-      const balanceRemaining = Math.max(0, totalProjectCost - advanceAmount);
+      const balanceRemaining = isRetainer ? Math.max(0, fin.minimumCommitmentTotal - fin.dueToStart) : Math.max(0, totalProjectCost - advanceAmount);
+      const receiptEyebrow = isRetainer ? 'FIRST PAYMENT' : 'ADVANCE PAYMENT';
+      const receiptDesc = isRetainer
+        ? `First Payment (Due to Start)`
+        : `${advancePercent}% Advance Payment`;
+      const receiptSubDesc = isRetainer
+        ? `Due to start work: setup fee + 1st month retainer as per quotation ${quotationDoc.documentNumber}`
+        : `${quotationDoc.projectName || 'Project'} (as per quotation ${quotationDoc.documentNumber})`;
 
       const receiptDoc: BillingDocument = {
         ...quotationDoc,
@@ -555,7 +605,7 @@ export const App: React.FC = () => {
         sourceQuotationId: quotationDoc.id,
         customText: {
           ...DEFAULT_RECEIPT_TEXT,
-          eyebrow: 'ADVANCE PAYMENT',
+          eyebrow: receiptEyebrow,
           tagline: quotationDoc.customText.tagline || DEFAULT_RECEIPT_TEXT.tagline,
           contactLine: quotationDoc.customText.contactLine || DEFAULT_RECEIPT_TEXT.contactLine,
           udyamLine: quotationDoc.customText.udyamLine || DEFAULT_RECEIPT_TEXT.udyamLine,
@@ -563,8 +613,8 @@ export const App: React.FC = () => {
         items: [
           {
             id: `item-${Date.now()}`,
-            description: `${advancePercent}% Advance Payment`,
-            subDescription: `${quotationDoc.projectName || 'Project'} (as per quotation ${quotationDoc.documentNumber})`,
+            description: receiptDesc,
+            subDescription: receiptSubDesc,
             qty: 1,
             rate: advanceAmount,
             amount: advanceAmount,
@@ -585,9 +635,11 @@ export const App: React.FC = () => {
           { id: 'p4', label: 'UTR No.', value: '', enabled: true },
         ],
         notes: [
-          `GST is not applicable (not registered). The remaining ₹${balanceRemaining.toLocaleString('en-IN')} is payable within ${
-            profile.balanceDueHoursDefault || 48
-          } hours after project completion and approval, as per quotation ${quotationDoc.documentNumber}.`,
+          isRetainer
+            ? `GST is not applicable (not registered). Recurring monthly billing of ₹${fin.monthlyTotal.toLocaleString('en-IN')} will commence from month 2 onwards, as per quotation ${quotationDoc.documentNumber}.`
+            : `GST is not applicable (not registered). The remaining ₹${balanceRemaining.toLocaleString('en-IN')} is payable within ${
+                profile.balanceDueHoursDefault || 48
+              } hours after project completion and approval, as per quotation ${quotationDoc.documentNumber}.`,
         ],
         closingLine: profile.receiptClosingTemplate,
         statusLog: undefined,

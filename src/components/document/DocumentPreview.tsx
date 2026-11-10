@@ -17,6 +17,8 @@ interface DocumentPreviewProps {
   document: BillingDocument;
   business: BusinessProfile;
   zoom?: number;
+  onUpdateDoc?: (doc: BillingDocument) => void;
+  onOpenPlanner?: () => void;
 }
 
 interface PageSlice {
@@ -31,10 +33,17 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   document: doc,
   business,
   zoom = 1,
+  onUpdateDoc,
 }) => {
   // If Quotation, delegate to dedicated QuotationPreview (guarantees zero regression on Invoice & Receipt)
   if (doc.type === 'quotation') {
-    return <QuotationPreview document={doc} business={business} zoom={zoom} />;
+    return (
+      <QuotationPreview
+        document={doc}
+        business={business}
+        zoom={zoom}
+      />
+    );
   }
 
   // Title handling (respects customText override or GST mode)

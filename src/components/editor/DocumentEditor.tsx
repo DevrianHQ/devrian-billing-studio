@@ -7,7 +7,16 @@ import { StorageService } from '../../services/storage';
 import { GoogleDriveSyncService } from '../../services/googleDriveSync';
 import { generateNextDocumentNumber, isDocumentNumberDuplicate } from '../../services/numbering';
 import { getTodayISODate, calculateDueDate, calculateValidTillDate } from '../../services/dateUtils';
-import { DEFAULT_INVOICE_TEXT, DEFAULT_RECEIPT_TEXT, DEFAULT_QUOTATION_TEXT } from '../../services/seedData';
+import {
+  DEFAULT_INVOICE_TEXT,
+  DEFAULT_RECEIPT_TEXT,
+  DEFAULT_QUOTATION_TEXT,
+  DEFAULT_QUOTATION_VISIBILITY,
+  DEFAULT_MONTHLY_DELIVERABLES,
+  DEFAULT_QUOTATION_BLOCKS,
+} from '../../services/seedData';
+import { resolveQuotationTermsList, PROJECT_DEFAULT_TERMS } from '../../services/policyAdapter';
+import { resolveQuotationPages } from '../../services/quotationLayoutEngine';
 import { SignatureStudioModal } from '../common/SignatureStudioModal';
 import {
   Save,
@@ -87,6 +96,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     return () => clearTimeout(timer);
   }, [doc]);
 
+  // Measure Quotation Layout and Pages
+  const quotationPages = useMemo(() => {
+    if (doc.type !== 'quotation') return null;
+    return resolveQuotationPages(doc, business);
+  }, [doc, business]);
+
   // Validation rules
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
@@ -139,8 +154,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
     // Bracket placeholder validation for Quotations (blocks export until replaced or section hidden)
     if (doc.type === 'quotation') {
-      const showInc = doc.sectionVisibility.showInclusions ?? true;
-      const showTime = doc.sectionVisibility.showTimeline ?? true;
+      const showInc = doc.sectionVisibility.showInclusions ?? false;
+      const showTime = doc.sectionVisibility.showTimeline ?? false;
       const bracketRegex = /\[.+?\]/;
 
       if (showInc && doc.inclusions && bracketRegex.test(doc.inclusions)) {
@@ -157,6 +172,22 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         errors.push(
           'Delivery timeline contains unfilled bracket placeholders (e.g. [X]). Please replace them or hide the section.'
         );
+      }
+
+      const showNotes = doc.sectionVisibility?.showFreeNotes ?? false;
+      if (showNotes && doc.freeNotes && bracketRegex.test(doc.freeNotes)) {
+        errors.push(
+          'Notes contain unfilled bracket placeholders (e.g. [...]). Please replace them or hide the section.'
+        );
+      }
+
+      // Monthly deliverables check
+      if (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') {
+        (doc.monthlyDeliverables || []).forEach((deliv) => {
+          if (bracketRegex.test(deliv.item) || bracketRegex.test(deliv.quantity)) {
+            errors.push(`Monthly deliverable "${deliv.item}" contains unfilled placeholder [ ]. Please replace or remove.`);
+          }
+        });
       }
     }
 
@@ -193,17 +224,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [doc, validationErrors, onSaveDocument]);
 
-  // Mark as Final handler (locks editing with unlock confirmation)
-  const handleMarkAsFinal = useCallback(() => {
-    if (doc.isFinal) {
+  // Direct Final Executor
+  const executeFinalDirect = useCallback((targetDoc: BillingDocument) => {
+    if (targetDoc.isFinal) {
       if (window.confirm('This document is currently locked as Final. Unlock for editing?')) {
         const unlocked: BillingDocument = {
-          ...doc,
+          ...targetDoc,
           isFinal: false,
-          status: doc.type === 'quotation' ? 'DRAFT' : doc.type === 'receipt' ? 'PAID' : 'UNPAID',
+          status: targetDoc.type === 'quotation' ? 'DRAFT' : targetDoc.type === 'receipt' ? 'PAID' : 'UNPAID',
           applySignature: false,
         };
-        setDoc(unlocked);
+        handleUpdateDoc(unlocked);
         onSaveDocument(unlocked);
         setSaveToast('Document unlocked for editing.');
         setTimeout(() => setSaveToast(null), 2500);
@@ -217,24 +248,19 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
 
     const updated: BillingDocument = {
-      ...doc,
+      ...targetDoc,
       isFinal: true,
-      status: doc.type === 'receipt' ? 'PAID' : doc.type === 'quotation' ? (doc.status === 'DRAFT' ? 'SENT' : doc.status) : 'FINAL',
+      status: targetDoc.type === 'receipt' ? 'PAID' : targetDoc.type === 'quotation' ? (targetDoc.status === 'DRAFT' ? 'SENT' : targetDoc.status) : 'FINAL',
       applySignature: true,
     };
-    setDoc(updated);
+    handleUpdateDoc(updated);
     onSaveDocument(updated);
     setSaveToast('Document marked as Final & business signature applied!');
     setTimeout(() => setSaveToast(null), 3000);
-  }, [doc, business.signatureDataUrl, onSaveDocument]);
+  }, [business.signatureDataUrl, handleUpdateDoc, onSaveDocument]);
 
-  // PDF Export handler
-  const handleDownloadPdf = useCallback(async () => {
-    if (validationErrors.length > 0) {
-      alert(`Cannot export PDF:\n\n• ${validationErrors.join('\n• ')}`);
-      return;
-    }
-
+  // Direct PDF Export Executor
+  const executeExportDirect = useCallback(async (targetDoc: BillingDocument) => {
     const wasMobileEditTab = activeTab === 'edit' && window.innerWidth < 768;
 
     try {
@@ -254,9 +280,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         throw new Error('Could not find document preview pages to render.');
       }
 
-      const docTypeLabel = doc.type === 'receipt' ? 'Receipt' : doc.type === 'quotation' ? 'Quotation' : 'Invoice';
-      const cleanClient = (doc.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
-      const cleanNumber = (doc.documentNumber || 'DOC').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const docTypeLabel = targetDoc.type === 'receipt' ? 'Receipt' : targetDoc.type === 'quotation' ? 'Quotation' : 'Invoice';
+      const cleanClient = (targetDoc.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const cleanNumber = (targetDoc.documentNumber || 'DOC').replace(/[^a-zA-Z0-9_-]/g, '_');
       const fileName = `DEVRIAN_${docTypeLabel}_${cleanNumber}_${cleanClient}.pdf`;
 
       const exportResult = await exportElementsToPdf(pageElements, fileName, {
@@ -264,14 +290,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           setExportMessage(msg);
         },
         metadata: {
-          title: `DEVRIAN ${docTypeLabel} ${doc.documentNumber}`,
+          title: `DEVRIAN ${docTypeLabel} ${targetDoc.documentNumber}`,
           author: 'DEVRIAN',
           creator: 'DEVRIAN Billing Studio',
-          subject: `${docTypeLabel} for ${doc.clientName || 'Client'}`,
+          subject: `${docTypeLabel} for ${targetDoc.clientName || 'Client'}`,
         },
       });
 
-      onSaveDocument(doc);
+      onSaveDocument(targetDoc);
 
       // Auto-upload PDF and sync database to Google Drive if configured
       const driveConfig = GoogleDriveSyncService.getConfig();
@@ -279,10 +305,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         setExportMessage('Uploading PDF to Google Drive client folder...');
         try {
           const uploadRes = await GoogleDriveSyncService.uploadPdf(
-            doc.type === 'receipt' ? 'receipt' : 'invoice',
+            targetDoc.type === 'receipt' ? 'receipt' : 'invoice',
             fileName,
             exportResult.pdfBase64,
-            doc.clientName || 'General Client'
+            targetDoc.clientName || 'General Client'
           );
           await GoogleDriveSyncService.syncDatabase(StorageService.exportFullBackup(true));
           if (uploadRes.success) {
@@ -308,7 +334,21 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         setActiveTab('edit');
       }
     }
-  }, [validationErrors, activeTab, doc, onSaveDocument]);
+  }, [activeTab, onSaveDocument]);
+
+  // Mark as Final handler (locks editing with unlock confirmation)
+  const handleMarkAsFinal = useCallback(() => {
+    executeFinalDirect(doc);
+  }, [doc, executeFinalDirect]);
+
+  // PDF Export handler
+  const handleDownloadPdf = useCallback(async () => {
+    if (validationErrors.length > 0) {
+      alert(`Cannot export PDF:\n\n• ${validationErrors.join('\n• ')}`);
+      return;
+    }
+    executeExportDirect(doc);
+  }, [validationErrors, doc, executeExportDirect]);
 
   // Type change handler
   const handleTypeChange = (newType: DocumentType) => {
@@ -362,16 +402,41 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         : undefined,
       totalProjectCost: isSwitchingToReceipt ? totalProjectCost : undefined,
       advancePercent: isSwitchingToQuotation ? (doc.advancePercent || business.advancePercentDefault || 50) : doc.advancePercent,
-      inclusions: isSwitchingToQuotation ? (doc.inclusions || business.defaultInclusions || '[e.g. editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.]') : doc.inclusions,
-      exclusions: isSwitchingToQuotation ? (doc.exclusions || business.defaultExclusions || '[e.g. shooting, voice-over, stock licences, ad spend, extra revisions.]') : doc.exclusions,
-      deliveryTimeline: isSwitchingToQuotation ? (doc.deliveryTimeline || business.defaultDeliveryTimeline || 'First draft within [X] working days and final delivery within [Y] working days after the advance and all required materials are received.') : doc.deliveryTimeline,
+      quotationType: isSwitchingToQuotation ? (doc.quotationType || 'project') : undefined,
+      contractStartDate: isSwitchingToQuotation ? (doc.contractStartDate || today) : undefined,
+      minTermMonths: isSwitchingToQuotation ? (doc.minTermMonths || 3) : undefined,
+      noticePeriodDays: isSwitchingToQuotation ? (doc.noticePeriodDays || 30) : undefined,
+      autoRenewal: isSwitchingToQuotation ? (doc.autoRenewal ?? true) : undefined,
+      monthlyDeliverables: isSwitchingToQuotation
+        ? (doc.monthlyDeliverables && doc.monthlyDeliverables.length > 0
+            ? doc.monthlyDeliverables
+            : [...DEFAULT_MONTHLY_DELIVERABLES])
+        : undefined,
+      quotationBlocks: isSwitchingToQuotation
+        ? (doc.quotationBlocks && doc.quotationBlocks.length > 0
+            ? doc.quotationBlocks
+            : [...DEFAULT_QUOTATION_BLOCKS])
+        : undefined,
+      inclusions: isSwitchingToQuotation ? (doc.inclusions ?? '') : doc.inclusions,
+      exclusions: isSwitchingToQuotation ? (doc.exclusions ?? '') : doc.exclusions,
+      deliveryTimeline: isSwitchingToQuotation ? (doc.deliveryTimeline ?? '') : doc.deliveryTimeline,
+      estimatedDelivery: isSwitchingToQuotation ? (doc.estimatedDelivery ?? '10 working days after advance and required materials') : doc.estimatedDelivery,
+      freeNotes: isSwitchingToQuotation ? (doc.freeNotes ?? '') : doc.freeNotes,
+      sectionVisibility: isSwitchingToQuotation
+        ? { ...DEFAULT_QUOTATION_VISIBILITY }
+        : { ...doc.sectionVisibility },
       customText: { ...defText },
       notes:
         newType === 'invoice'
           ? [...business.invoiceTermsTemplate]
           : newType === 'receipt'
           ? [...business.receiptTermsTemplate]
-          : [...business.quotationTermsTemplate],
+          : resolveQuotationTermsList(
+              business.quotationTermsTemplate && business.quotationTermsTemplate.length > 0
+                ? [...business.quotationTermsTemplate]
+                : [...PROJECT_DEFAULT_TERMS],
+              business
+            ),
       closingLine:
         newType === 'receipt'
           ? business.receiptClosingTemplate
@@ -443,6 +508,29 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <span>Quotation</span>
             </button>
           </div>
+
+          {/* Page Status Pill for Quotation */}
+          {doc.type === 'quotation' && quotationPages && (
+            <div
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition border shadow-sm ${
+                quotationPages.length > 1
+                  ? 'bg-indigo-950/70 border-indigo-500/60 text-indigo-300'
+                  : 'bg-emerald-950/70 border-emerald-500/60 text-emerald-300'
+              }`}
+              title="Quotation document page count"
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  quotationPages.length > 1 ? 'bg-indigo-400' : 'bg-emerald-400'
+                }`}
+              />
+              <span>
+                {quotationPages.length > 1
+                  ? `${quotationPages.length} pages`
+                  : '1 page (Auto)'}
+              </span>
+            </div>
+          )}
 
           {/* Quick conversions */}
           {doc.type === 'invoice' && (
@@ -714,7 +802,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
           {/* Interactive Document Preview scrollable container: Neutral Grey Desk Background */}
           <div className="flex-1 overflow-auto p-4 sm:p-8 flex justify-center custom-scrollbar bg-[#CBD5E1]">
-            <DocumentPreview document={doc} business={business} zoom={zoom} />
+            <DocumentPreview
+              document={doc}
+              business={business}
+              zoom={zoom}
+              onUpdateDoc={handleUpdateDoc}
+            />
           </div>
         </div>
       </div>
