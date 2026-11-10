@@ -5,6 +5,7 @@ import { SavedQuotationTemplate } from '../types';
 import { QuotationTemplateService } from '../templates';
 import { computeQuotationFinancials, measureQuotationLayout } from '../layoutEngine';
 import { getQuotationPolicyVariables } from '../utils/policiesAdapter';
+import { formatDisplayDate } from '../../../services/dateUtils';
 
 // Strict token-based components (14 locked components only)
 import { HeaderBand } from './HeaderBand';
@@ -149,183 +150,592 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
         {/* TEMPLATE 1: PROJECT (EXACTLY 1 PAGE)                                     */}
         {/* ========================================================================= */}
         {!isMonthly ? (
-          <div className="flex flex-col items-center">
-            <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
-              Page 1 of 1 · Project Quotation
-            </div>
+          <>
+            {/* ----------------- PAGE 1: DEEP BLACK COVER PAGE (Matching Terms & Conditions) ----------------- */}
+            <div className="flex flex-col items-center">
+              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
+                Page 1 of 2 · Project Cover &amp; Information
+              </div>
 
-            <div
-              className="a4-page-export bg-white text-black relative box-border overflow-hidden shadow-2xl"
-              style={{
-                width: QUOTATION_TOKENS.layout.pageWidth, // 210mm
-                height: QUOTATION_TOKENS.layout.pageHeight, // 297mm
-                backgroundColor: QUOTATION_TOKENS.colors.white,
-              }}
-            >
-              {/* 1. HeaderBand (48mm) */}
-              <HeaderBand
-                customText={doc.customText}
-                business={business}
-                eyebrow="QUOTATION · ONE-TIME PROJECT"
-                documentTitle="QUOTATION"
-              />
-
-              {/* Page 1 Body Content */}
               <div
-                className="w-full flex flex-col justify-start"
+                className="a4-page-export text-white relative box-border overflow-hidden shadow-2xl flex flex-col justify-between"
                 style={{
-                  maxHeight: `${QUOTATION_TOKENS.spacing.num.page1UsableH}mm`, // 234mm
-                  gap: isDenseProject ? '3mm' : '4mm',
-                  paddingTop: isDenseProject ? '3mm' : '4mm',
+                  width: QUOTATION_TOKENS.layout.pageWidth, // 210mm
+                  height: QUOTATION_TOKENS.layout.pageHeight, // 297mm
+                  backgroundColor: QUOTATION_TOKENS.colors.black, // #0E0E0E
+                  color: QUOTATION_TOKENS.colors.white,
+                  fontFamily: QUOTATION_TOKENS.font.family,
+                  boxSizing: 'border-box',
                 }}
               >
-                {/* 2. MetaRow: 4 equal columns (12mm) */}
-                <MetaRow
-                  documentNumber={doc.documentNumber}
-                  date={doc.date}
-                  validTill={doc.validTill}
-                  status={doc.status}
-                  validityDays={template.validityDays}
-                />
-
-                {/* 3. PartyRow: PREPARED FOR & PROJECT (19mm) */}
-                <PartyRow
-                  clientName={doc.clientName}
-                  contactPerson={doc.clientContactPerson}
-                  clientAddress={doc.clientAddress}
-                  clientPhone={doc.clientPhone}
-                  clientEmail={doc.clientEmail}
-                  clientGstin={doc.clientGstin}
-                  projectHeading="PROJECT"
-                  projectName={doc.projectName || 'Brand Identity & Digital Design'}
-                  estimatedDelivery={doc.estimatedDelivery}
-                />
-
-                {/* 4. SectionHeading "SCOPE OF WORK" + DataTable (Max 5 rows) */}
-                <div className="w-full flex flex-col">
-                  <div
-                    style={{
-                      paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
-                      paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
-                      marginBottom: '2mm',
-                    }}
+                {/* Background chevron polygon watermark (matching Terms & Policies) */}
+                <div className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none overflow-hidden select-none opacity-20">
+                  <svg
+                    viewBox="0 0 400 700"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-full h-full object-cover"
+                    preserveAspectRatio="none"
                   >
-                    <SectionHeading title="SCOPE OF WORK" />
-                  </div>
-                  <DataTable
-                    items={items.slice(0, 5)}
-                    tableType="project"
-                    isDense={isDenseProject}
-                  />
+                    <path
+                      d="M100 0 L400 350 L100 700 L0 700 L300 350 L0 0 Z"
+                      fill={QUOTATION_TOKENS.colors.bodyText}
+                    />
+                    <path
+                      d="M220 0 L520 350 L220 700 L120 700 L420 350 L120 0 Z"
+                      fill={QUOTATION_TOKENS.colors.shapeDark1}
+                    />
+                  </svg>
                 </div>
 
-                {/* 5. Two-column row: LEFT PaymentBox (84mm) & RIGHT SummaryBlock (84mm) */}
+                {/* Top: Logo mark + Wordmark + Eyebrow */}
                 <div
-                  className="w-full flex items-start justify-between box-border"
+                  className="relative z-10 select-none box-border"
                   style={{
-                    paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
-                    paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
-                    width: QUOTATION_TOKENS.layout.pageWidth,
+                    paddingLeft: '24mm',
+                    paddingTop: '24mm',
+                    paddingRight: '24mm',
                   }}
                 >
-                  {/* Left Column (84mm): PaymentBox */}
-                  {showPaymentDetails ? (
-                    <PaymentBox
-                      business={business}
-                      heading="PAYMENT DETAILS"
-                      showQr={showQr}
-                      amount={financials.advanceAmount}
-                      quotationNumber={doc.documentNumber}
-                      isFullWidth={false}
+                  <div className="flex items-center" style={{ gap: '3.5mm' }}>
+                    <img
+                      src="/brand/devrian-symbol-pure-white.png"
+                      alt="DEVRIAN"
+                      style={{
+                        height: '8mm',
+                        width: 'auto',
+                        maxHeight: '8mm',
+                      }}
+                      className="object-contain shrink-0"
+                      crossOrigin="anonymous"
                     />
-                  ) : (
-                    <div style={{ width: QUOTATION_TOKENS.layout.colWidth }} />
-                  )}
-
-                  {/* Right Column (84mm): SummaryBlock */}
-                  <SummaryBlock
-                    summaryType="project"
-                    subtotal={financials.subtotal}
-                    discountAmount={financials.discountAmount}
-                    discountType={doc.discountType}
-                    discountValue={doc.discountValue}
-                    taxAmount={financials.taxAmount}
-                    gstEnabled={doc.gstEnabled}
-                    gstRate={doc.gstRate}
-                    advanceAmount={financials.advanceAmount}
-                    advancePercent={financials.advancePercent}
-                    balancePayable={financials.balancePayable}
-                    labelSubtotal="Subtotal"
-                    labelDiscount="Discount"
-                    labelTotal="TOTAL"
-                    hideZeroRows={template.visibility.hideZeroRows}
-                  />
+                    <img
+                      src="/brand/devrian-brand-wordmark-white.png"
+                      alt="DEVRIAN"
+                      style={{
+                        height: '5mm',
+                        width: 'auto',
+                        maxHeight: '5mm',
+                      }}
+                      className="object-contain shrink-0"
+                      crossOrigin="anonymous"
+                    />
+                  </div>
+                  <div style={{ marginTop: '3mm' }}>
+                    <span
+                      style={{
+                        fontFamily: QUOTATION_TOKENS.font.family,
+                        fontSize: '7.5pt',
+                        fontWeight: 700,
+                        letterSpacing: '0.25em',
+                        color: QUOTATION_TOKENS.colors.greyLight,
+                        textTransform: 'uppercase',
+                        display: 'block',
+                      }}
+                    >
+                      QUOTATION · ONE-TIME PROJECT
+                    </span>
+                  </div>
                 </div>
 
-                {/* 6. Quiet one-line rule note (only if GST toggle is off) */}
-                {!doc.gstEnabled && showGstLine && (
-                  <div
+                {/* Center: Headline, White Accent Bar & Subtitle */}
+                <div
+                  className="relative z-10 my-auto select-none box-border"
+                  style={{
+                    paddingLeft: '24mm',
+                    paddingRight: '24mm',
+                  }}
+                >
+                  <h1
                     style={{
-                      paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
-                      paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
+                      fontFamily: QUOTATION_TOKENS.font.family,
+                      fontSize: '36pt',
+                      fontWeight: 800,
+                      letterSpacing: '-0.02em',
+                      color: QUOTATION_TOKENS.colors.white,
+                      textTransform: 'uppercase',
+                      lineHeight: 1.05,
+                      margin: 0,
                     }}
                   >
+                    PROJECT<br />
+                    QUOTATION
+                  </h1>
+
+                  {/* Accent Line */}
+                  <div
+                    style={{
+                      width: '14mm',
+                      height: '1mm',
+                      backgroundColor: QUOTATION_TOKENS.colors.white,
+                      marginTop: '6mm',
+                      marginBottom: '4mm',
+                    }}
+                  />
+
+                  <p
+                    style={{
+                      fontFamily: QUOTATION_TOKENS.font.family,
+                      fontSize: '11pt',
+                      fontWeight: 500,
+                      color: QUOTATION_TOKENS.colors.taglineLight,
+                      letterSpacing: '0.02em',
+                      margin: 0,
+                      maxWidth: '120mm',
+                    }}
+                  >
+                    {doc.projectName || 'Commercial Creative & Video Production Services'}
+                  </p>
+
+                  {doc.estimatedDelivery && (
                     <p
                       style={{
                         fontFamily: QUOTATION_TOKENS.font.family,
-                        ...QUOTATION_TOKENS.font.scale.small,
-                        fontStyle: 'italic',
-                        color: QUOTATION_TOKENS.colors.greyDark,
+                        fontSize: '8pt',
+                        fontWeight: 400,
+                        color: QUOTATION_TOKENS.colors.metaLight,
+                        marginTop: '2mm',
                         margin: 0,
-                        lineHeight: 1,
                       }}
                     >
-                      Prices exclude GST. Taxes will be added if applicable at billing.
+                      Estimated delivery: {doc.estimatedDelivery}
                     </p>
+                  )}
+                </div>
+
+                {/* Bottom: 2x2 Meta Grid (Matching SS 2) */}
+                <div
+                  className="relative z-10 box-border w-full"
+                  style={{
+                    paddingLeft: '24mm',
+                    paddingRight: '24mm',
+                    paddingBottom: '20mm',
+                  }}
+                >
+                  <div
+                    style={{
+                      border: `0.25mm solid ${QUOTATION_TOKENS.colors.hairlineDark}`,
+                      backgroundColor: QUOTATION_TOKENS.colors.black,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {/* Row 1 */}
+                    <div
+                      className="grid grid-cols-2"
+                      style={{
+                        borderBottom: `0.25mm solid ${QUOTATION_TOKENS.colors.hairlineDark}`,
+                      }}
+                    >
+                      {/* PREPARED FOR: Client Details stacked cleanly in lines */}
+                      <div
+                        style={{
+                          padding: '4mm 5mm',
+                          borderRight: `0.25mm solid ${QUOTATION_TOKENS.colors.hairlineDark}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '6.5pt',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.22em',
+                            color: QUOTATION_TOKENS.colors.greyLight,
+                            display: 'block',
+                            marginBottom: '1.5mm',
+                          }}
+                        >
+                          PREPARED FOR
+                        </span>
+                        {/* Line 1: Client Name */}
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '9.5pt',
+                            fontWeight: 700,
+                            color: QUOTATION_TOKENS.colors.white,
+                            display: 'block',
+                          }}
+                        >
+                          {doc.clientName || 'Client Name'}
+                        </span>
+                        {/* Line 2: Contact Person */}
+                        {doc.clientContactPerson && (
+                          <span
+                            style={{
+                              fontFamily: QUOTATION_TOKENS.font.family,
+                              fontSize: '7.5pt',
+                              color: QUOTATION_TOKENS.colors.metaLight,
+                              display: 'block',
+                              marginTop: '0.8mm',
+                            }}
+                          >
+                            Attn: {doc.clientContactPerson}
+                          </span>
+                        )}
+                        {/* Line 3: Address */}
+                        {doc.clientAddress && (
+                          <span
+                            style={{
+                              fontFamily: QUOTATION_TOKENS.font.family,
+                              fontSize: '7.5pt',
+                              color: QUOTATION_TOKENS.colors.metaLight,
+                              display: 'block',
+                              marginTop: '0.8mm',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {doc.clientAddress}
+                          </span>
+                        )}
+                        {/* Line 4: Email / Phone */}
+                        {(doc.clientEmail || doc.clientPhone) && (
+                          <span
+                            style={{
+                              fontFamily: QUOTATION_TOKENS.font.family,
+                              fontSize: '7.5pt',
+                              color: QUOTATION_TOKENS.colors.metaLight,
+                              display: 'block',
+                              marginTop: '0.8mm',
+                            }}
+                          >
+                            {[doc.clientEmail, doc.clientPhone].filter(Boolean).join(' • ')}
+                          </span>
+                        )}
+                        {/* Line 5: GSTIN (if present) */}
+                        {doc.clientGstin && (
+                          <span
+                            style={{
+                              fontFamily: QUOTATION_TOKENS.font.family,
+                              fontSize: '7pt',
+                              color: QUOTATION_TOKENS.colors.greyLight,
+                              display: 'block',
+                              marginTop: '0.8mm',
+                            }}
+                          >
+                            GSTIN: {doc.clientGstin}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* PREPARED BY: Dev Rajpoot in 3 clean lines */}
+                      <div style={{ padding: '4mm 5mm' }}>
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '6.5pt',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.22em',
+                            color: QUOTATION_TOKENS.colors.greyLight,
+                            display: 'block',
+                            marginBottom: '1.5mm',
+                          }}
+                        >
+                          PREPARED BY
+                        </span>
+                        {/* Line 1: Name */}
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '9.5pt',
+                            fontWeight: 700,
+                            color: QUOTATION_TOKENS.colors.white,
+                            display: 'block',
+                          }}
+                        >
+                          Dev Rajpoot
+                        </span>
+                        {/* Line 2: Role / Company */}
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '8pt',
+                            fontWeight: 500,
+                            color: QUOTATION_TOKENS.colors.taglineLight,
+                            display: 'block',
+                            marginTop: '0.8mm',
+                          }}
+                        >
+                          Founder &amp; CEO, DEVRIAN
+                        </span>
+                        {/* Line 3: Email & Website */}
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '7.5pt',
+                            color: QUOTATION_TOKENS.colors.metaLight,
+                            display: 'block',
+                            marginTop: '0.8mm',
+                          }}
+                        >
+                          inquiry@devrian.in • devrian.in
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Row 2 */}
+                    <div className="grid grid-cols-2">
+                      {/* QUOTATION DATE: Date on top, Valid Till on its own line below */}
+                      <div
+                        style={{
+                          padding: '4mm 5mm',
+                          borderRight: `0.25mm solid ${QUOTATION_TOKENS.colors.hairlineDark}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '6.5pt',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.22em',
+                            color: QUOTATION_TOKENS.colors.greyLight,
+                            display: 'block',
+                            marginBottom: '1.5mm',
+                          }}
+                        >
+                          QUOTATION DATE
+                        </span>
+                        {/* Line 1: Quotation Date */}
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '9.5pt',
+                            fontWeight: 700,
+                            color: QUOTATION_TOKENS.colors.white,
+                            display: 'block',
+                          }}
+                        >
+                          {formatDisplayDate(doc.date)}
+                        </span>
+                        {/* Line 2: Valid Till below */}
+                        {doc.validTill && (
+                          <span
+                            style={{
+                              fontFamily: QUOTATION_TOKENS.font.family,
+                              fontSize: '7.5pt',
+                              fontWeight: 500,
+                              color: QUOTATION_TOKENS.colors.metaLight,
+                              display: 'block',
+                              marginTop: '1mm',
+                            }}
+                          >
+                            Valid Till: {formatDisplayDate(doc.validTill)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* DOCUMENT IDENTIFIER: Only Quotation Number (NO status/sent) */}
+                      <div style={{ padding: '4mm 5mm' }}>
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '6.5pt',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.22em',
+                            color: QUOTATION_TOKENS.colors.greyLight,
+                            display: 'block',
+                            marginBottom: '1.5mm',
+                          }}
+                        >
+                          DOCUMENT IDENTIFIER
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: QUOTATION_TOKENS.font.family,
+                            fontSize: '9.5pt',
+                            fontWeight: 700,
+                            color: QUOTATION_TOKENS.colors.white,
+                            display: 'block',
+                            ...QUOTATION_TOKENS.font.scale.numbers,
+                          }}
+                        >
+                          {doc.documentNumber}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                )}
 
-                {/* 7. NoteBox "TERMS & NOTES" (Max 5 points) */}
-                {showTerms && (
-                  <NoteBox
-                    heading="TERMS & NOTES"
-                    notes={termsList.slice(0, 5)}
-                    variables={policyVars}
-                  />
-                )}
+                  {/* Bottom Footer Line */}
+                  <div
+                    className="flex justify-between items-center select-none"
+                    style={{
+                      marginTop: '3.5mm',
+                      fontFamily: QUOTATION_TOKENS.font.family,
+                      fontSize: '6.5pt',
+                      color: QUOTATION_TOKENS.colors.greyMid,
+                    }}
+                  >
+                    <span>Udyam Reg. No.: UDYAM-UP-54-0127731 • devrian.in</span>
+                    <span>Commercial Project Quotation • Page 1 of 2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                {/* 8 & 9. Instruction line & SignaturePair */}
-                {showAcceptance && (
-                  <SignaturePair
-                    clientName={doc.clientName}
-                    documentNumber={doc.documentNumber}
-                    date={doc.date}
-                    signatureUrl={business.signatureDataUrl}
-                    applySignature={doc.applySignature}
-                    isFinal={doc.isFinal}
-                    showClientSignature={showClientCol}
-                    showLegalDisclaimer={showLegalDisclaimer}
-                    instructionText={template.labels.instructionLine}
-                    isProject={true}
-                  />
-                )}
-
-                {/* 10. ClosingLine */}
-                {showClosingLine && (
-                  <ClosingLine text={template.labels.closingLine} />
-                )}
+            {/* ----------------- PAGE 2: SCOPE OF WORK, PRICING & ACCEPTANCE ----------------- */}
+            <div className="flex flex-col items-center">
+              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
+                Page 2 of 2 · Scope of Work, Pricing &amp; Client Acceptance
               </div>
 
-              {/* 11. Footer: y=282 rule, y=285 text (Page 1 of 1) */}
-              <Footer
-                documentNumber={doc.documentNumber}
-                currentPage={1}
-                totalPages={1}
-                udyamNo={business.udyamNo}
-                email={business.email}
-              />
+              <div
+                className="a4-page-export bg-white text-black relative box-border overflow-hidden shadow-2xl"
+                style={{
+                  width: QUOTATION_TOKENS.layout.pageWidth, // 210mm
+                  height: QUOTATION_TOKENS.layout.pageHeight, // 297mm
+                  backgroundColor: QUOTATION_TOKENS.colors.white,
+                }}
+              >
+                {/* 1. SlimHeader */}
+                <SlimHeader
+                  documentNumber={doc.documentNumber}
+                  blackLogoUrl={blackLogoUrl}
+                />
+
+                {/* Page 2 Body Content */}
+                <div
+                  className="w-full flex flex-col justify-start"
+                  style={{
+                    maxHeight: `${QUOTATION_TOKENS.spacing.num.page2UsableH}mm`, // 258mm
+                    gap: isDenseProject ? '3mm' : '4mm',
+                    paddingTop: '3mm',
+                  }}
+                >
+                  {/* 2. SectionHeading "SCOPE OF WORK" + DataTable (Max 6 rows) */}
+                  <div className="w-full flex flex-col">
+                    <div
+                      style={{
+                        paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
+                        paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
+                        marginBottom: '2mm',
+                      }}
+                    >
+                      <SectionHeading title="SCOPE OF WORK" />
+                    </div>
+                    <DataTable
+                      items={items.slice(0, 6)}
+                      tableType="project"
+                      isDense={isDenseProject}
+                    />
+                  </div>
+
+                  {/* 3. SummaryBlock (Right-aligned under Scope of Work) */}
+                  <div
+                    className="w-full flex justify-end box-border"
+                    style={{
+                      paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
+                      paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
+                    }}
+                  >
+                    <div style={{ width: QUOTATION_TOKENS.layout.colWidth }}>
+                      <SummaryBlock
+                        summaryType="project"
+                        subtotal={financials.subtotal}
+                        discountAmount={financials.discountAmount}
+                        discountType={doc.discountType}
+                        discountValue={doc.discountValue}
+                        taxAmount={financials.taxAmount}
+                        gstEnabled={doc.gstEnabled}
+                        gstRate={doc.gstRate}
+                        advanceAmount={financials.advanceAmount}
+                        advancePercent={financials.advancePercent}
+                        balancePayable={financials.balancePayable}
+                        labelSubtotal="Subtotal"
+                        labelDiscount="Discount"
+                        labelTotal="TOTAL"
+                        hideZeroRows={template.visibility.hideZeroRows}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 4. PaymentBox (Full Width 174mm - Structured 2-column & 2x2 grid matching Invoice) */}
+                  {showPaymentDetails && (
+                    <div
+                      className="w-full box-border"
+                      style={{
+                        paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
+                        paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
+                      }}
+                    >
+                      <PaymentBox
+                        business={business}
+                        heading="PAYMENT DETAILS"
+                        showQr={showQr}
+                        amount={financials.advanceAmount}
+                        quotationNumber={doc.documentNumber}
+                        isFullWidth={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* 4. Quiet one-line rule note (only if GST toggle is off) */}
+                  {!doc.gstEnabled && showGstLine && (
+                    <div
+                      style={{
+                        paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
+                        paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontFamily: QUOTATION_TOKENS.font.family,
+                          ...QUOTATION_TOKENS.font.scale.small,
+                          fontStyle: 'italic',
+                          color: QUOTATION_TOKENS.colors.greyDark,
+                          margin: 0,
+                          lineHeight: 1,
+                        }}
+                      >
+                        Prices exclude GST. Taxes will be added if applicable at billing.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 5. NoteBox "TERMS & NOTES" (Max 5 points) */}
+                  {showTerms && (
+                    <NoteBox
+                      heading="TERMS & NOTES"
+                      notes={termsList.slice(0, 5)}
+                      variables={policyVars}
+                    />
+                  )}
+
+                  {/* 6. Instruction line & SignaturePair */}
+                  {showAcceptance && (
+                    <SignaturePair
+                      clientName={doc.clientName}
+                      documentNumber={doc.documentNumber}
+                      date={doc.date}
+                      signatureUrl={business.signatureDataUrl}
+                      applySignature={doc.applySignature}
+                      isFinal={doc.isFinal}
+                      showClientSignature={showClientCol}
+                      showLegalDisclaimer={showLegalDisclaimer}
+                      instructionText={template.labels.instructionLine}
+                      isProject={true}
+                    />
+                  )}
+
+                  {/* 7. ClosingLine */}
+                  {showClosingLine && (
+                    <ClosingLine text={template.labels.closingLine} />
+                  )}
+                </div>
+
+                {/* 8. Footer: Page 2 of 2 */}
+                <Footer
+                  documentNumber={doc.documentNumber}
+                  currentPage={2}
+                  totalPages={2}
+                  udyamNo={business.udyamNo}
+                  email={business.email}
+                />
+              </div>
             </div>
-          </div>
+          </>
         ) : (
           /* ========================================================================= */
           /* TEMPLATE 2: MONTHLY RETAINER (EXACTLY 2 PAGES)                           */

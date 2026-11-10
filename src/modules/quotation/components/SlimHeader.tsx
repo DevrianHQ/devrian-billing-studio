@@ -4,11 +4,12 @@ import { QUOTATION_TOKENS } from '../tokens';
 interface SlimHeaderProps {
   documentNumber: string;
   blackLogoUrl?: string;
+  titleLabel?: string;
 }
 
 export const SlimHeader: React.FC<SlimHeaderProps> = ({
   documentNumber,
-  blackLogoUrl = '/brand/devrian-symbol-dark.png',
+  titleLabel = 'SCOPE OF WORK & ACCEPTANCE',
 }) => {
   return (
     <div
@@ -19,7 +20,7 @@ export const SlimHeader: React.FC<SlimHeaderProps> = ({
         width: QUOTATION_TOKENS.layout.pageWidth, // 210mm
       }}
     >
-      {/* Top y=10mm: Small Lockup Left (mark 6mm, wordmark 10pt), LABEL Right */}
+      {/* Top y=10mm: Official Logo Mark + Wordmark Image (Matching Terms SS 2), Right: Section Title */}
       <div
         className="absolute flex items-center justify-between"
         style={{
@@ -29,42 +30,67 @@ export const SlimHeader: React.FC<SlimHeaderProps> = ({
           height: '6mm',
         }}
       >
-        {/* Exactly ONE small black lockup: mark 6mm + wordmark 10pt. No redundant DEVRIAN text! */}
-        <div className="flex items-center gap-[2.8mm]">
+        {/* Left: Devrian Symbol Mark (Black) + Devrian Wordmark Image (Black) + | + Doc info */}
+        <div className="flex items-center" style={{ gap: '3.5mm' }}>
           <img
-            src={blackLogoUrl}
+            src="/brand/devrian-symbol-black.png"
             alt="DEVRIAN"
             style={{
-              height: '6mm',
+              height: '5mm',
               width: 'auto',
-              maxHeight: '6mm',
+              maxHeight: '5mm',
             }}
             className="object-contain shrink-0"
+            crossOrigin="anonymous"
+          />
+          <img
+            src="/brand/devrian-brand-wordmark.png"
+            alt="DEVRIAN"
+            style={{
+              height: '3.5mm',
+              width: 'auto',
+              maxHeight: '3.5mm',
+            }}
+            className="object-contain shrink-0"
+            crossOrigin="anonymous"
           />
           <span
             style={{
-              fontFamily: QUOTATION_TOKENS.font.family,
-              fontSize: '10pt',
-              fontWeight: 500,
-              letterSpacing: '0.42em',
-              color: QUOTATION_TOKENS.colors.black,
-              textTransform: 'uppercase',
-              lineHeight: 1,
+              color: QUOTATION_TOKENS.colors.rule,
+              fontWeight: 300,
+              fontSize: '9pt',
+              marginLeft: '1mm',
+              marginRight: '1mm',
             }}
           >
-            DEVRIAN
+            |
+          </span>
+          <span
+            style={{
+              fontFamily: QUOTATION_TOKENS.font.family,
+              fontSize: '7pt',
+              fontWeight: 600,
+              letterSpacing: '0.18em',
+              color: QUOTATION_TOKENS.colors.greyMid,
+              textTransform: 'uppercase',
+            }}
+          >
+            QUOTATION · {documentNumber}
           </span>
         </div>
 
-        {/* Right: "QUOTATION <No.> · CONTINUED" in LABEL style */}
+        {/* Right: Section Title */}
         <span
           style={{
             fontFamily: QUOTATION_TOKENS.font.family,
-            ...QUOTATION_TOKENS.font.scale.label,
-            color: QUOTATION_TOKENS.colors.greyDark,
+            fontSize: '7pt',
+            fontWeight: 700,
+            letterSpacing: '0.18em',
+            color: QUOTATION_TOKENS.colors.greyMid,
+            textTransform: 'uppercase',
           }}
         >
-          QUOTATION {documentNumber} · CONTINUED
+          {titleLabel}
         </span>
       </div>
 

@@ -156,8 +156,8 @@ export function measureQuotationLayout(
 
   // 1. HARD LIMIT CHECKS
   if (templateType === 'project') {
-    if (items.length > 5) {
-      hardLimitViolations.push(`Maximum 5 rows allowed for a 1-page Project Quotation (currently ${items.length}).`);
+    if (items.length > 6) {
+      hardLimitViolations.push(`Maximum 6 rows allowed for Project Quotation (currently ${items.length}).`);
     }
     if (terms.length > 5) {
       hardLimitViolations.push(`Maximum 5 terms points allowed for Project Quotation (currently ${terms.length}).`);
@@ -182,26 +182,30 @@ export function measureQuotationLayout(
   const pages: QuotationPageMeasurement[] = [];
 
   if (templateType === 'project') {
-    const maxHeightMm = QUOTATION_TOKENS.spacing.num.page1UsableH; // 220mm
+    // PAGE 1: Dark Cover Page (fixed 297mm full A4 cover, fits cleanly)
+    pages.push({
+      pageNumber: 1,
+      contentHeightMm: 297,
+      maxHeightMm: 297,
+      overflowMm: 0,
+      spareMm: 0,
+      fits: true,
+    });
 
-    // HeaderBand: 62mm (fixed at top)
-    // Block gaps: ~4mm
+    // PAGE 2: Scope of Work, Pricing, Terms & Acceptance
+    const maxHeightMm = QUOTATION_TOKENS.spacing.num.page2UsableH; // 258mm
     let contentHeightMm = 0;
 
-    // MetaRow (4 cols)
-    contentHeightMm += 11 + QUOTATION_TOKENS.spacing.num.gap5; // ~16mm
-
-    // PartyRow (2 cols)
-    const partyLines = (doc.clientAddress ? 2 : 1) + (doc.clientContactPerson ? 1 : 0);
-    contentHeightMm += 14 + (partyLines * 3.5) + QUOTATION_TOKENS.spacing.num.gap5; // ~22mm
+    // SlimHeader: 24mm
+    contentHeightMm += 24 + QUOTATION_TOKENS.spacing.num.gap3;
 
     // Table ("SCOPE OF WORK")
-    const tableHeaderH = QUOTATION_TOKENS.spacing.num.tableHeaderH; // 9.5mm
+    const tableHeaderH = QUOTATION_TOKENS.spacing.num.tableHeaderH; // 8.5mm
     const tableRowsH = items.reduce((sum, item) => {
       const hasSub = Boolean(item.subDescription && item.subDescription.trim());
       return sum + (hasSub ? 11.5 : 9.5);
     }, 0);
-    contentHeightMm += tableHeaderH + tableRowsH + QUOTATION_TOKENS.spacing.num.gap5;
+    contentHeightMm += tableHeaderH + tableRowsH + QUOTATION_TOKENS.spacing.num.gap4;
 
     // Two-column Block (LEFT PaymentBox, RIGHT SummaryBlock + TotalBar)
     const showQr = doc.sectionVisibility.showUpiQr || template.paymentToggles.showQr;
@@ -223,7 +227,7 @@ export function measureQuotationLayout(
         const estLines = Math.ceil(note.length / 105);
         return sum + (estLines * 4.2) + 1.2;
       }, 0);
-      contentHeightMm += 6 + notesH + QUOTATION_TOKENS.spacing.num.gap5; // 6mm box padding + heading
+      contentHeightMm += 6 + notesH + QUOTATION_TOKENS.spacing.num.gap4; // 6mm box padding + heading
     }
 
     // Acceptance Block (Instruction + SignaturePair)
@@ -244,7 +248,7 @@ export function measureQuotationLayout(
     const fits = overflowMm === 0 && hardLimitViolations.length === 0;
 
     pages.push({
-      pageNumber: 1,
+      pageNumber: 2,
       contentHeightMm: Math.round(contentHeightMm),
       maxHeightMm,
       overflowMm,
@@ -350,8 +354,8 @@ export function measureQuotationLayout(
 
   if (hasOverflow) {
     if (templateType === 'project') {
-      const p1 = pages[0];
-      overflowMessage = `Too long for a 1-page quotation (overflow by ${p1.overflowMm}mm). Reduce rows or shorten text; put detailed scope in the Proposal.`;
+      const ovPages = pages.filter(p => p.overflowMm > 0).map(p => `Page ${p.pageNumber}: +${p.overflowMm}mm`).join(', ');
+      overflowMessage = `Too long for the 2-page Project Quotation (${ovPages}). Reduce rows or shorten text; put detailed scope in the Proposal.`;
     } else {
       const ovPages = pages.filter(p => p.overflowMm > 0).map(p => `Page ${p.pageNumber}: +${p.overflowMm}mm`).join(', ');
       overflowMessage = `Too long for the fixed layout (${ovPages}). Reduce rows or shorten text.`;
