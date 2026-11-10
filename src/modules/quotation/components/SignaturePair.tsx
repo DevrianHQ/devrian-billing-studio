@@ -27,12 +27,12 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
   instructionText = 'To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start.',
   isProject = true,
 }) => {
-  const signatureSpaceH = isProject ? '11mm' : '18mm';
-  const pairTotalH = isProject ? `${QUOTATION_TOKENS.spacing.num.signaturePairProjectH}mm` : `${QUOTATION_TOKENS.spacing.num.signaturePairMonthlyH}mm`; // 26mm or 33mm
+  const signatureSpaceH = isProject ? '14mm' : '20mm';
+  const pairTotalH = isProject ? `${QUOTATION_TOKENS.spacing.num.signaturePairProjectH}mm` : `${QUOTATION_TOKENS.spacing.num.signaturePairMonthlyH}mm`; // 28mm or 35mm
   const colWidth = '82mm';
   const gutterWidth = '10mm';
   const canShowSignature = applySignature && isFinal && Boolean(signatureUrl);
-  const sigMaxHeight = isProject ? '10mm' : '14mm';
+  const sigMaxHeight = isProject ? '13mm' : '18mm';
 
   return (
     <div
@@ -174,7 +174,7 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
                 alt="Signature"
                 style={{
                   maxHeight: sigMaxHeight,
-                  maxWidth: '48mm',
+                  maxWidth: '62mm',
                   objectFit: 'contain',
                   position: 'absolute',
                   bottom: '1mm',
