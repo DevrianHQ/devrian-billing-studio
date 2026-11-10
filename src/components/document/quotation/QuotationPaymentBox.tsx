@@ -179,3 +179,4 @@ export const QuotationPaymentBox: React.FC<QuotationPaymentBoxProps> = ({
     </div>
   );
 };
+

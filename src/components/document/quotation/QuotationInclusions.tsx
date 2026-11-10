@@ -11,8 +11,46 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
 }) => {
   if (!inclusions && !exclusions) return null;
 
-  // Decide layout: two columns if both are under 140 characters, stacked if longer
-  const isShort = (inclusions?.length || 0) < 140 && (exclusions?.length || 0) < 140;
+  // Decide layout: two columns if both are under 160 characters or have <= 4 lines, stacked if longer
+  const incLines = (inclusions || '').split('\n').filter(Boolean).length;
+  const excLines = (exclusions || '').split('\n').filter(Boolean).length;
+  const isShort = (inclusions?.length || 0) < 180 && (exclusions?.length || 0) < 180 && incLines <= 4 && excLines <= 4;
+
+  const renderContent = (text: string, color: string, isPositive: boolean) => {
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 1) {
+      return (
+        <div className="space-y-[0.8mm] pl-[1.5mm]">
+          {lines.map((line, idx) => {
+            const clean = line.replace(/^[-•*]\s*/, '').trim();
+            return (
+              <div key={idx} className="flex items-start gap-1.5 text-[7.8pt]" style={{ color, lineHeight: 1.35 }}>
+                <span className={`text-[7pt] mt-[0.5mm] shrink-0 font-bold ${isPositive ? 'text-emerald-600' : 'text-neutral-400'}`}>
+                  {isPositive ? '✓' : '—'}
+                </span>
+                <span>{clean}</span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return (
+      <p
+        style={{
+          fontSize: '7.8pt',
+          fontWeight: 400,
+          color,
+          lineHeight: 1.35,
+          paddingLeft: '2mm',
+          margin: 0,
+          whiteSpace: 'pre-line',
+        }}
+      >
+        {text}
+      </p>
+    );
+  };
 
   return (
     <div
@@ -36,7 +74,7 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
           {/* Included */}
           {inclusions && (
             <div>
-              <div className="flex items-center gap-1.5 mb-[0.8mm]">
+              <div className="flex items-center gap-1.5 mb-[1mm]">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                 <span
                   style={{
@@ -50,26 +88,14 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
                   Included:
                 </span>
               </div>
-              <p
-                style={{
-                  fontSize: '7.8pt',
-                  fontWeight: 400,
-                  color: '#262626',
-                  lineHeight: 1.35,
-                  paddingLeft: '3mm',
-                  margin: 0,
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {inclusions}
-              </p>
+              {renderContent(inclusions, '#262626', true)}
             </div>
           )}
 
           {/* Not included */}
           {exclusions && (
             <div>
-              <div className="flex items-center gap-1.5 mb-[0.8mm]">
+              <div className="flex items-center gap-1.5 mb-[1mm]">
                 <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 shrink-0" />
                 <span
                   style={{
@@ -83,19 +109,7 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
                   Not included:
                 </span>
               </div>
-              <p
-                style={{
-                  fontSize: '7.8pt',
-                  fontWeight: 400,
-                  color: '#52525B',
-                  lineHeight: 1.35,
-                  paddingLeft: '3mm',
-                  margin: 0,
-                  whiteSpace: 'pre-line',
-                }}
-              >
-                {exclusions}
-              </p>
+              {renderContent(exclusions, '#52525B', false)}
             </div>
           )}
         </div>
@@ -103,3 +117,4 @@ export const QuotationInclusions: React.FC<QuotationInclusionsProps> = ({
     </div>
   );
 };
+

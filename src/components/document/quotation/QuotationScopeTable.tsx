@@ -1,16 +1,23 @@
 import React from 'react';
-import { LineItem } from '../../../types';
+import { LineItem, DocumentCustomText } from '../../../types';
 import { formatINR } from '../../../services/indianCurrency';
 
 interface QuotationScopeTableProps {
   items: LineItem[];
   startIndex?: number;
+  customText?: DocumentCustomText;
 }
 
 export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
   items,
   startIndex = 1,
+  customText,
 }) => {
+  const colDescriptionLabel =
+    customText?.colDescription && customText.colDescription !== 'Description'
+      ? customText.colDescription
+      : 'SCOPE OF WORK';
+
   return (
     <div
       className="w-full box-border"
@@ -42,7 +49,7 @@ export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
                 letterSpacing: '0.15em',
               }}
             >
-              #
+              {customText?.colNumber || '#'}
             </th>
 
             {/* Scope of Work */}
@@ -58,7 +65,7 @@ export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              SCOPE OF WORK
+              {colDescriptionLabel}
             </th>
 
             {/* Qty */}
@@ -74,7 +81,7 @@ export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              QTY
+              {customText?.colQty || 'QTY'}
             </th>
 
             {/* Rate */}
@@ -90,7 +97,7 @@ export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              RATE (₹)
+              {customText?.colRate || 'RATE (₹)'}
             </th>
 
             {/* Amount */}
@@ -106,7 +113,7 @@ export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
                 textTransform: 'uppercase',
               }}
             >
-              AMOUNT (₹)
+              {customText?.colAmount || 'AMOUNT (₹)'}
             </th>
           </tr>
         </thead>
@@ -235,3 +242,4 @@ export const QuotationScopeTable: React.FC<QuotationScopeTableProps> = ({
     </div>
   );
 };
+

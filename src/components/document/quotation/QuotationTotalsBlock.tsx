@@ -190,3 +190,4 @@ export const QuotationTotalsBlock: React.FC<QuotationTotalsBlockProps> = ({
     </div>
   );
 };
+

@@ -60,3 +60,4 @@ export const QuotationFooter: React.FC<QuotationFooterProps> = ({
     </div>
   );
 };
+

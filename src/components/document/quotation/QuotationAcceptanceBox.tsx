@@ -108,3 +108,4 @@ export const QuotationAcceptanceBox: React.FC<QuotationAcceptanceBoxProps> = ({
     </div>
   );
 };
+

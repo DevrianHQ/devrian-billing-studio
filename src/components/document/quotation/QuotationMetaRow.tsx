@@ -129,3 +129,4 @@ export const QuotationMetaRow: React.FC<QuotationMetaRowProps> = ({
     </div>
   );
 };
+

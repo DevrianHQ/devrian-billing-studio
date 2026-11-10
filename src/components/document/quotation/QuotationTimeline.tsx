@@ -59,3 +59,4 @@ export const QuotationTimeline: React.FC<QuotationTimelineProps> = ({ timeline }
     </div>
   );
 };
+

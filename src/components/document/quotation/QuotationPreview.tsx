@@ -23,10 +23,13 @@ interface QuotationPreviewProps {
 
 interface QuotationPageSlice {
   pageNumber: number;
+  type: 'scope_and_totals' | 'scope_continued' | 'terms_and_acceptance' | 'single_page_all';
   items: LineItem[];
   startIndex: number;
   isFirstPage: boolean;
   isLastPage: boolean;
+  showTotals?: boolean;
+  showContinuationNotice?: boolean;
 }
 
 export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
@@ -53,76 +56,52 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
 
   const balancePayable = Math.max(0, totalProjectCost - advanceAmount);
 
-  // Pagination and Smart Fit
+  // Pagination and Multi-Page Arrangement
   const { pages, smartScale } = useMemo(() => {
     const isForceOnePage = doc.layoutMode === 'force_one_page';
 
-    // Height calculation
-    const page1FixedH = 58 + 14 + 18 + 8 + 8; // Header + Meta + PreparedFor + TableHeader + Footer = 106mm
     const getItemHeight = (item: LineItem) => {
       const hasSub = Boolean(item.subDescription && item.subDescription.trim());
-      return hasSub ? 12 : 8.5;
+      return hasSub ? 14 : 9.5;
     };
 
-    const itemsTotalH = items.reduce((sum, item) => sum + getItemHeight(item), 0);
+    // If forced to 1 page explicitly
+    if (isForceOnePage) {
+      const page1FixedH = 62 + 16 + 22 + 8 + 12; // Header + Meta + PreparedFor + TableHeader + Footer
+      const itemsTotalH = items.reduce((sum, item) => sum + getItemHeight(item), 0);
+      const bottomBlockH = 34 + 20 + 14 + 24 + 32 + 24 + 18;
+      const totalH = page1FixedH + itemsTotalH + bottomBlockH;
+      const scale = Math.max(0.75, 297 / Math.max(297, totalH));
 
-    // Bottom block height on the last page
-    const totalsH = 32;
-    const inclusionsH = (vis.showInclusions ?? true) && (doc.inclusions || doc.exclusions) ? 18 : 0;
-    const timelineH = (vis.showTimeline ?? true) && doc.deliveryTimeline ? 12 : 0;
-    const paymentH = vis.showPaymentDetails ? 22 : 0;
-    const termsCount = vis.showTermsAndNotes ? (doc.notes?.length || 0) : 0;
-    const termsH = vis.showTermsAndNotes && termsCount > 0 ? 12 + termsCount * 3.5 : 0;
-    const acceptanceH = (vis.showAcceptance ?? true) ? 24 : 0;
-    const signatureH = (vis.showSignature ?? true) || doc.applySignature ? 18 : 0;
-
-    const bottomBlockH =
-      totalsH + inclusionsH + timelineH + paymentH + termsH + acceptanceH + signatureH;
-
-    const total1PageH = page1FixedH + itemsTotalH + bottomBlockH;
-
-    // 1. Fits in 1 page at 100% scale
-    if (total1PageH <= 297 && !isForceOnePage) {
       return {
         pages: [
           {
             pageNumber: 1,
+            type: 'single_page_all' as const,
             items: items,
             startIndex: 1,
             isFirstPage: true,
             isLastPage: true,
+            showTotals: true,
+            showContinuationNotice: false,
           },
         ],
-        smartScale: 1.0,
+        smartScale: scale,
       };
     }
 
-    // 2. Fits with Smart Fit scale down to 88% (or force one page)
-    if (isForceOnePage || total1PageH <= 335) {
-      const scale = Math.max(0.88, 297 / total1PageH);
-      return {
-        pages: [
-          {
-            pageNumber: 1,
-            items: items,
-            startIndex: 1,
-            isFirstPage: true,
-            isLastPage: true,
-          },
-        ],
-        smartScale: isForceOnePage ? scale : Math.max(0.88, scale),
-      };
-    }
+    // DEFAULT 2-PAGE ARCHITECTURE
+    // Available height for line items on Page 1 along with Header, Meta, Prepared For, and Totals
+    // 297mm - Header (62mm) - Meta (16mm) - PreparedFor (22mm) - TableHeader (8mm) - TotalsBlock (36mm) - Bridge (10mm) - Footer (12mm) - Margin (15mm) = 116mm
+    const p1AvailableH = 116;
 
-    // 3. Multi-page layout
-    const result: QuotationPageSlice[] = [];
     let p1Items: LineItem[] = [];
     let p1H = 0;
     let idx = 0;
 
     while (idx < items.length) {
       const h = getItemHeight(items[idx]);
-      if (p1H + h <= 170 && idx < 12) {
+      if (p1H + h <= p1AvailableH && p1Items.length < 8) {
         p1Items.push(items[idx]);
         p1H += h;
         idx++;
@@ -131,81 +110,114 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
       }
     }
 
-    if (p1Items.length === 0 && items.length > 0) {
-      p1Items.push(items[0]);
-      idx = 1;
+    // Standard case: all items fit on Page 1 -> 2 Page Quotation (Page 1 = Scope & Summary, Page 2 = Terms & Acceptance)
+    if (idx >= items.length) {
+      return {
+        pages: [
+          {
+            pageNumber: 1,
+            type: 'scope_and_totals' as const,
+            items: p1Items,
+            startIndex: 1,
+            isFirstPage: true,
+            isLastPage: false,
+            showTotals: true,
+            showContinuationNotice: true,
+          },
+          {
+            pageNumber: 2,
+            type: 'terms_and_acceptance' as const,
+            items: [],
+            startIndex: items.length + 1,
+            isFirstPage: false,
+            isLastPage: true,
+            showTotals: false,
+            showContinuationNotice: false,
+          },
+        ],
+        smartScale: 1.0,
+      };
     }
 
+    // Multi-page case: items overflow Page 1
+    const result: QuotationPageSlice[] = [];
     result.push({
       pageNumber: 1,
+      type: 'scope_and_totals' as const,
       items: p1Items,
       startIndex: 1,
       isFirstPage: true,
       isLastPage: false,
+      showTotals: false,
+      showContinuationNotice: false,
     });
 
+    let currentItemIdx = p1Items.length;
     let pageNum = 2;
-    while (idx < items.length) {
-      const remainingItems = items.length - idx;
-      let testH = 0;
-      let countFitting = 0;
 
-      for (let i = idx; i < items.length; i++) {
-        testH += getItemHeight(items[i]);
-        if (testH + bottomBlockH <= 245) {
-          countFitting++;
-        }
+    while (currentItemIdx < items.length) {
+      let nextBatch: LineItem[] = [];
+      let batchH = 0;
+      let testRemainingH = 0;
+      for (let i = currentItemIdx; i < items.length; i++) {
+        testRemainingH += getItemHeight(items[i]);
       }
 
-      if (countFitting === remainingItems) {
+      // If remaining items + totals block fit on current continued page
+      if (testRemainingH + 36 <= 230) {
         result.push({
           pageNumber: pageNum,
-          items: items.slice(idx),
-          startIndex: idx + 1,
+          type: 'scope_continued' as const,
+          items: items.slice(currentItemIdx),
+          startIndex: currentItemIdx + 1,
           isFirstPage: false,
-          isLastPage: true,
+          isLastPage: false,
+          showTotals: true,
+          showContinuationNotice: true,
         });
+        pageNum++;
         break;
       } else {
-        let pItems: LineItem[] = [];
-        let pH = 0;
-        while (idx < items.length) {
-          const h = getItemHeight(items[idx]);
-          if (pH + h <= 240) {
-            pItems.push(items[idx]);
-            pH += h;
-            idx++;
+        while (currentItemIdx < items.length) {
+          const h = getItemHeight(items[currentItemIdx]);
+          if (batchH + h <= 220) {
+            nextBatch.push(items[currentItemIdx]);
+            batchH += h;
+            currentItemIdx++;
           } else {
             break;
           }
         }
-        if (pItems.length === 0 && idx < items.length) {
-          pItems.push(items[idx]);
-          idx++;
+        if (nextBatch.length === 0 && currentItemIdx < items.length) {
+          nextBatch.push(items[currentItemIdx]);
+          currentItemIdx++;
         }
-
-        const isLast = idx >= items.length;
+        const hasConsumedAll = currentItemIdx >= items.length;
         result.push({
           pageNumber: pageNum,
-          items: pItems,
-          startIndex: idx - pItems.length + 1,
+          type: 'scope_continued' as const,
+          items: nextBatch,
+          startIndex: currentItemIdx - nextBatch.length + 1,
           isFirstPage: false,
-          isLastPage: isLast,
+          isLastPage: false,
+          showTotals: hasConsumedAll,
+          showContinuationNotice: hasConsumedAll,
         });
         pageNum++;
       }
     }
 
-    // If all items consumed on p1 but didn't fit bottom block, add dedicated last page
-    if (result.length === 1 && !result[0].isLastPage) {
-      result.push({
-        pageNumber: 2,
-        items: [],
-        startIndex: items.length + 1,
-        isFirstPage: false,
-        isLastPage: true,
-      });
-    }
+    // Final Page: Terms, Inclusions, Timeline, Payment & Acceptance
+    result.push({
+      pageNumber: pageNum,
+      type: 'terms_and_acceptance' as const,
+      items: [],
+      startIndex: items.length + 1,
+      isFirstPage: false,
+      isLastPage: true,
+      showTotals: false,
+      showContinuationNotice: false,
+    });
 
     return {
       pages: result,
@@ -255,22 +267,18 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                 : undefined
             }
           >
-            {page.isFirstPage ? (
+            {/* PAGE 1: SCOPE OF WORK & FINANCIAL SUMMARY */}
+            {page.type === 'scope_and_totals' && (
               <>
                 {/* 1. Header Band with #0E0E0E background, large white wordmark, contact & udyam lines */}
                 <HeaderBand
                   type="quotation"
                   business={business}
-                  customText={{
-                    ...doc.customText,
-                    documentTitle: 'QUOTATION',
-                    eyebrow: 'QUOTATION',
-                  }}
+                  customText={doc.customText}
                   logoUrl={business.logoDataUrl}
                   whiteLogoUrl={business.whiteLogoDataUrl}
                   wordmarkScale={business.wordmarkScale}
                   showHeaderShapes={business.showHeaderShapes}
-                  accentColor={business.accentColor || '#0E0E0E'}
                 />
 
                 {/* 2. Quotation Meta Row */}
@@ -292,140 +300,413 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                   clientGstin={doc.clientGstin}
                   customHeading={doc.customText?.clientSectionHeading || 'PREPARED FOR'}
                 />
-              </>
-            ) : (
-              /* Slim Repeated Header on Subsequent Pages (18mm) */
-              <div
-                className="border-b border-[#2A2A2A] flex justify-between items-center bg-[#0E0E0E] text-white box-border shrink-0"
-                style={{
-                  height: '18mm',
-                  paddingLeft: '18mm',
-                  paddingRight: '18mm',
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <DevrianLogoMark
-                    logoUrl={business.logoDataUrl}
-                    whiteLogoUrl={business.whiteLogoDataUrl}
-                    scale={0.7}
+
+                {/* 4. Scope of Work Table */}
+                {page.items.length > 0 && (
+                  <div className="w-full">
+                    <QuotationScopeTable
+                      items={page.items}
+                      startIndex={page.startIndex}
+                      customText={doc.customText}
+                    />
+                  </div>
+                )}
+
+                {/* 5. Summary / Totals Table */}
+                {page.showTotals && (
+                  <QuotationTotalsBlock
+                    subtotal={doc.subtotal}
+                    discountAmount={doc.discountAmount}
+                    discountType={doc.discountType}
+                    discountValue={doc.discountValue}
+                    gstEnabled={doc.gstEnabled}
+                    gstRate={doc.gstRate}
+                    gstType={doc.gstType}
+                    cgstAmount={doc.cgstAmount}
+                    sgstAmount={doc.sgstAmount}
+                    igstAmount={doc.igstAmount}
+                    totalTaxAmount={doc.totalTaxAmount}
+                    advanceAmount={advanceAmount}
+                    advancePercent={advancePercent}
+                    advanceType={doc.advanceType}
+                    balancePayable={balancePayable}
+                    customText={doc.customText}
+                    visibility={doc.sectionVisibility}
                   />
-                  <span className="text-[#555555]">·</span>
-                  <span
+                )}
+
+                {/* 6. Continued on Page 2 Bridge Notice */}
+                {page.showContinuationNotice && (
+                  <div
+                    className="w-full box-border mt-auto mb-2"
+                    style={{
+                      paddingLeft: '18mm',
+                      paddingRight: '18mm',
+                      paddingTop: '2mm',
+                    }}
+                  >
+                    <div
+                      className="flex items-center justify-between pt-2 border-t border-[#E5E5E5]"
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '7.2pt',
+                        color: '#71717A',
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0E0E0E]" />
+                        <span className="font-medium tracking-wider uppercase text-[#52525B]">
+                          Inclusions, Exclusions, Delivery Timeline, Terms &amp; Acceptance
+                        </span>
+                      </div>
+                      <span className="font-semibold text-[#0E0E0E] tracking-wider uppercase">
+                        Detailed on Page 2 &rarr;
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* CONTINUED SCOPE PAGE (if items overflow Page 1) */}
+            {page.type === 'scope_continued' && (
+              <>
+                {/* Sleek Continued Header */}
+                <div
+                  className="w-full flex items-center justify-between box-border"
+                  style={{
+                    backgroundColor: '#0E0E0E',
+                    color: '#FFFFFF',
+                    height: '20mm',
+                    paddingLeft: '18mm',
+                    paddingRight: '18mm',
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <DevrianLogoMark
+                      logoUrl={business.logoDataUrl}
+                      whiteLogoUrl={business.whiteLogoDataUrl}
+                      scale={0.72}
+                    />
+                    <div className="h-4 w-[1px] bg-neutral-700 mx-1" />
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontWeight: 700,
+                        fontSize: '7.8pt',
+                        color: '#FFFFFF',
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      QUOTATION {doc.documentNumber} (Contd.)
+                    </span>
+                  </div>
+                  <div
                     style={{
                       fontFamily: "'Poppins', sans-serif",
-                      fontWeight: 600,
-                      fontSize: '7.5pt',
-                      color: '#E5E5E5',
+                      fontWeight: 500,
+                      fontSize: '7.2pt',
+                      color: '#9CA3AF',
                       letterSpacing: '0.15em',
-                      wordSpacing: '0.4em',
                       textTransform: 'uppercase',
                     }}
                   >
-                    QUOTATION {doc.documentNumber} (Contd.)
-                  </span>
+                    Page {page.pageNumber} of {totalPages}
+                  </div>
                 </div>
+
+                {/* Scope of Work Table */}
+                {page.items.length > 0 && (
+                  <div className="w-full">
+                    <QuotationScopeTable
+                      items={page.items}
+                      startIndex={page.startIndex}
+                      customText={doc.customText}
+                    />
+                  </div>
+                )}
+
+                {/* Summary / Totals Table if finished on this page */}
+                {page.showTotals && (
+                  <QuotationTotalsBlock
+                    subtotal={doc.subtotal}
+                    discountAmount={doc.discountAmount}
+                    discountType={doc.discountType}
+                    discountValue={doc.discountValue}
+                    gstEnabled={doc.gstEnabled}
+                    gstRate={doc.gstRate}
+                    gstType={doc.gstType}
+                    cgstAmount={doc.cgstAmount}
+                    sgstAmount={doc.sgstAmount}
+                    igstAmount={doc.igstAmount}
+                    totalTaxAmount={doc.totalTaxAmount}
+                    advanceAmount={advanceAmount}
+                    advancePercent={advancePercent}
+                    advanceType={doc.advanceType}
+                    balancePayable={balancePayable}
+                    customText={doc.customText}
+                    visibility={doc.sectionVisibility}
+                  />
+                )}
+
+                {page.showContinuationNotice && (
+                  <div
+                    className="w-full box-border mt-auto mb-2"
+                    style={{
+                      paddingLeft: '18mm',
+                      paddingRight: '18mm',
+                      paddingTop: '2mm',
+                    }}
+                  >
+                    <div
+                      className="flex items-center justify-between pt-2 border-t border-[#E5E5E5]"
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '7.2pt',
+                        color: '#71717A',
+                      }}
+                    >
+                      <span className="font-medium tracking-wider uppercase text-[#52525B]">
+                        Inclusions, Exclusions, Delivery Timeline, Terms &amp; Acceptance
+                      </span>
+                      <span className="font-semibold text-[#0E0E0E] tracking-wider uppercase">
+                        Detailed on Next Page &rarr;
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* PAGE 2: DELIVERABLE SCOPE, TERMS & ACCEPTANCE */}
+            {page.type === 'terms_and_acceptance' && (
+              <>
+                {/* Sleek Continued Header */}
                 <div
+                  className="w-full flex items-center justify-between box-border"
                   style={{
-                    fontFamily: "'Poppins', sans-serif",
-                    fontWeight: 500,
-                    fontSize: '7pt',
-                    color: '#9CA3AF',
-                    letterSpacing: '0.15em',
-                    textTransform: 'uppercase',
+                    backgroundColor: '#0E0E0E',
+                    color: '#FFFFFF',
+                    height: '20mm',
+                    paddingLeft: '18mm',
+                    paddingRight: '18mm',
                   }}
                 >
-                  Page {page.pageNumber} of {totalPages}
+                  <div className="flex items-center gap-3">
+                    <DevrianLogoMark
+                      logoUrl={business.logoDataUrl}
+                      whiteLogoUrl={business.whiteLogoDataUrl}
+                      scale={0.72}
+                    />
+                    <div className="h-4 w-[1px] bg-neutral-700 mx-1" />
+                    <div className="flex items-center gap-2">
+                      <span
+                        style={{
+                          fontFamily: "'Poppins', sans-serif",
+                          fontWeight: 700,
+                          fontSize: '7.8pt',
+                          color: '#FFFFFF',
+                          letterSpacing: '0.18em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        QUOTATION {doc.documentNumber}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "'Poppins', sans-serif",
+                          fontWeight: 400,
+                          fontSize: '7.2pt',
+                          color: '#A1A1AA',
+                        }}
+                      >
+                        · Deliverable Scope, Terms &amp; Acceptance
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 500,
+                      fontSize: '7.2pt',
+                      color: '#9CA3AF',
+                      letterSpacing: '0.15em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Page {page.pageNumber} of {totalPages}
+                  </div>
                 </div>
-              </div>
+
+                {/* Page 2 Content Container */}
+                <div
+                  className="flex-1 flex flex-col justify-between box-border"
+                  style={{
+                    paddingTop: '3.5mm',
+                    paddingBottom: '2mm',
+                  }}
+                >
+                  <div className="space-y-[2.8mm]">
+                    {/* 1. Inclusions & Exclusions */}
+                    {(vis.showInclusions ?? true) && (
+                      <QuotationInclusions
+                        inclusions={doc.inclusions}
+                        exclusions={doc.exclusions}
+                      />
+                    )}
+
+                    {/* 2. Delivery Timeline */}
+                    {(vis.showTimeline ?? true) && (
+                      <QuotationTimeline timeline={doc.deliveryTimeline} />
+                    )}
+
+                    {/* 3. Payment Details Table */}
+                    {vis.showPaymentDetails && (
+                      <QuotationPaymentBox
+                        business={business}
+                        paymentRows={doc.paymentRows}
+                        advanceAmount={advanceAmount}
+                        quotationNumber={doc.documentNumber}
+                        showQr={vis.showUpiQr || doc.paymentDetails.showQrOnDoc}
+                      />
+                    )}
+
+                    {/* 4. Terms & Notes */}
+                    {vis.showTermsAndNotes && (
+                      <QuotationTerms
+                        notes={doc.notes}
+                        heading={doc.customText?.termsSectionHeading || 'TERMS & CONDITIONS'}
+                      />
+                    )}
+
+                    {/* 5. Acceptance Box */}
+                    {(vis.showAcceptance ?? true) && (
+                      <QuotationAcceptanceBox
+                        showClientSignature={vis.showClientSignature ?? true}
+                        clientName={doc.clientName}
+                      />
+                    )}
+
+                    {/* 6. Closing Line & Signature Block */}
+                    <QuotationClosingAndSignature
+                      documentNumber={doc.documentNumber}
+                      date={doc.date}
+                      closingLine={doc.closingLine}
+                      signatureUrl={business.signatureDataUrl}
+                      applySignature={doc.applySignature}
+                      isFinal={doc.isFinal}
+                      customText={doc.customText}
+                      visibility={doc.sectionVisibility}
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
-            {/* 4. Scope of Work Table */}
-            {page.items.length > 0 && (
-              <div className="w-full">
-                <QuotationScopeTable items={page.items} startIndex={page.startIndex} />
-              </div>
-            )}
-
-            {/* BOTTOM SECTIONS ONLY ON LAST PAGE */}
-            {page.isLastPage && (
-              <div className="w-full space-y-[1mm]">
-                {/* 5. Summary Table */}
-                <QuotationTotalsBlock
-                  subtotal={doc.subtotal}
-                  discountAmount={doc.discountAmount}
-                  discountType={doc.discountType}
-                  discountValue={doc.discountValue}
-                  gstEnabled={doc.gstEnabled}
-                  gstRate={doc.gstRate}
-                  gstType={doc.gstType}
-                  cgstAmount={doc.cgstAmount}
-                  sgstAmount={doc.sgstAmount}
-                  igstAmount={doc.igstAmount}
-                  totalTaxAmount={doc.totalTaxAmount}
-                  advanceAmount={advanceAmount}
-                  advancePercent={advancePercent}
-                  advanceType={doc.advanceType}
-                  balancePayable={balancePayable}
+            {/* SINGLE PAGE FALLBACK (only if layoutMode === 'force_one_page') */}
+            {page.type === 'single_page_all' && (
+              <>
+                <HeaderBand
+                  type="quotation"
+                  business={business}
                   customText={doc.customText}
-                  visibility={doc.sectionVisibility}
+                  logoUrl={business.logoDataUrl}
+                  whiteLogoUrl={business.whiteLogoDataUrl}
+                  wordmarkScale={business.wordmarkScale}
+                  showHeaderShapes={business.showHeaderShapes}
                 />
-
-                {/* 6. Inclusions & Exclusions */}
-                {(vis.showInclusions ?? true) && (
-                  <QuotationInclusions
-                    inclusions={doc.inclusions}
-                    exclusions={doc.exclusions}
-                  />
-                )}
-
-                {/* 7. Delivery Timeline */}
-                {(vis.showTimeline ?? true) && (
-                  <QuotationTimeline timeline={doc.deliveryTimeline} />
-                )}
-
-                {/* 8. Payment Details Table */}
-                {vis.showPaymentDetails && (
-                  <QuotationPaymentBox
-                    business={business}
-                    paymentRows={doc.paymentRows}
-                    advanceAmount={advanceAmount}
-                    quotationNumber={doc.documentNumber}
-                    showQr={vis.showUpiQr || doc.paymentDetails.showQrOnDoc}
-                  />
-                )}
-
-                {/* 9. Terms & Notes */}
-                {vis.showTermsAndNotes && (
-                  <QuotationTerms
-                    notes={doc.notes}
-                    heading={doc.customText?.termsSectionHeading || 'TERMS & CONDITIONS'}
-                  />
-                )}
-
-                {/* 10. Acceptance Box */}
-                {(vis.showAcceptance ?? true) && (
-                  <QuotationAcceptanceBox
-                    showClientSignature={vis.showClientSignature ?? true}
-                    clientName={doc.clientName}
-                  />
-                )}
-
-                {/* 11 & 12. Closing Line & Signature Block */}
-                <QuotationClosingAndSignature
+                <QuotationMetaRow
                   documentNumber={doc.documentNumber}
                   date={doc.date}
-                  closingLine={doc.closingLine}
-                  signatureUrl={business.signatureDataUrl}
-                  applySignature={doc.applySignature}
-                  isFinal={doc.isFinal}
-                  customText={doc.customText}
-                  visibility={doc.sectionVisibility}
+                  validTill={doc.validTill}
+                  projectName={doc.projectName}
+                  status={doc.status}
                 />
-              </div>
+                <QuotationPreparedFor
+                  clientName={doc.clientName}
+                  contactPerson={doc.clientContactPerson}
+                  clientAddress={doc.clientAddress}
+                  clientPhone={doc.clientPhone}
+                  clientEmail={doc.clientEmail}
+                  clientGstin={doc.clientGstin}
+                  customHeading={doc.customText?.clientSectionHeading || 'PREPARED FOR'}
+                />
+                {page.items.length > 0 && (
+                  <div className="w-full">
+                    <QuotationScopeTable
+                      items={page.items}
+                      startIndex={page.startIndex}
+                      customText={doc.customText}
+                    />
+                  </div>
+                )}
+                <div className="w-full space-y-[1mm]">
+                  <QuotationTotalsBlock
+                    subtotal={doc.subtotal}
+                    discountAmount={doc.discountAmount}
+                    discountType={doc.discountType}
+                    discountValue={doc.discountValue}
+                    gstEnabled={doc.gstEnabled}
+                    gstRate={doc.gstRate}
+                    gstType={doc.gstType}
+                    cgstAmount={doc.cgstAmount}
+                    sgstAmount={doc.sgstAmount}
+                    igstAmount={doc.igstAmount}
+                    totalTaxAmount={doc.totalTaxAmount}
+                    advanceAmount={advanceAmount}
+                    advancePercent={advancePercent}
+                    advanceType={doc.advanceType}
+                    balancePayable={balancePayable}
+                    customText={doc.customText}
+                    visibility={doc.sectionVisibility}
+                  />
+                  {(vis.showInclusions ?? true) && (
+                    <QuotationInclusions
+                      inclusions={doc.inclusions}
+                      exclusions={doc.exclusions}
+                    />
+                  )}
+                  {(vis.showTimeline ?? true) && (
+                    <QuotationTimeline timeline={doc.deliveryTimeline} />
+                  )}
+                  {vis.showPaymentDetails && (
+                    <QuotationPaymentBox
+                      business={business}
+                      paymentRows={doc.paymentRows}
+                      advanceAmount={advanceAmount}
+                      quotationNumber={doc.documentNumber}
+                      showQr={vis.showUpiQr || doc.paymentDetails.showQrOnDoc}
+                    />
+                  )}
+                  {vis.showTermsAndNotes && (
+                    <QuotationTerms
+                      notes={doc.notes}
+                      heading={doc.customText?.termsSectionHeading || 'TERMS & CONDITIONS'}
+                    />
+                  )}
+                  {(vis.showAcceptance ?? true) && (
+                    <QuotationAcceptanceBox
+                      showClientSignature={vis.showClientSignature ?? true}
+                      clientName={doc.clientName}
+                    />
+                  )}
+                  <QuotationClosingAndSignature
+                    documentNumber={doc.documentNumber}
+                    date={doc.date}
+                    closingLine={doc.closingLine}
+                    signatureUrl={business.signatureDataUrl}
+                    applySignature={doc.applySignature}
+                    isFinal={doc.isFinal}
+                    customText={doc.customText}
+                    visibility={doc.sectionVisibility}
+                  />
+                </div>
+              </>
             )}
           </div>
 
-          {/* 13. Quotation Document Footer on every page */}
+          {/* 7. Quotation Document Footer on every page */}
           <div className="relative z-10 mt-auto">
             <QuotationFooter
               documentNumber={doc.documentNumber}
