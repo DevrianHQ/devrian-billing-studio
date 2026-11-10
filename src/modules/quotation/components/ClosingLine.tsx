@@ -25,8 +25,9 @@ export const ClosingLine: React.FC<ClosingLineProps> = ({
         style={{
           fontFamily: QUOTATION_TOKENS.font.family,
           fontStyle: 'italic',
-          ...QUOTATION_TOKENS.font.scale.body,
-          color: QUOTATION_TOKENS.colors.greyDark,
+          fontSize: '10.5pt',
+          fontWeight: 500,
+          color: QUOTATION_TOKENS.colors.bodyText,
           margin: 0,
           lineHeight: 1.4,
         }}
