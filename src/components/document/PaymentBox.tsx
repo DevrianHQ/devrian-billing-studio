@@ -140,68 +140,203 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
           paddingBottom: '1.5mm',
         }}
       >
-        <div
-          style={{
-            border: '0.25mm solid #E2E8F0',
-            padding: '3.5mm 4mm',
-            backgroundColor: '#FFFFFF',
-          }}
-        >
-          <div style={headingStyle}>
-            {customText.paymentSectionHeading || 'PAYMENT DETAILS'}
+        <div className="w-full box-border select-none">
+          {/* Top Black Header */}
+          <div
+            style={{
+              backgroundColor: '#0E0E0E',
+              paddingLeft: '4.5mm',
+              paddingRight: '4.5mm',
+              height: '7.5mm',
+              display: 'flex',
+              alignItems: 'center',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '7pt',
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: '#FFFFFF',
+                lineHeight: 1,
+              }}
+            >
+              {customText.paymentSectionHeading || 'PAYMENT DETAILS'}
+            </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-[8mm] gap-y-[2.5mm] pt-[1.5mm] border-t border-[#F1F5F9]">
-            <div>
-              <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider mb-[0.6mm]">
-                Date & Time
-              </span>
-              <span className="font-semibold text-[#0E0E0E] text-[8.5pt] block">
-                {dateTimeVal}
-              </span>
-            </div>
-
-            <div>
-              <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider mb-[0.6mm]">
-                Payment Mode
-              </span>
-              <span className="font-semibold text-[#0E0E0E] text-[8.5pt] block">
-                {modeVal}
-              </span>
-            </div>
-
-            {txIdVal && (
+          {/* Gray Body */}
+          <div
+            className="w-full"
+            style={{
+              backgroundColor: '#F0F0F0',
+              padding: '3.5mm 4.5mm',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div className="grid grid-cols-2 gap-x-[8mm] gap-y-[2.2mm]">
               <div>
-                <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider mb-[0.6mm]">
-                  Transaction ID
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '6.8pt',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.16em',
+                    color: '#6B6B6B',
+                    display: 'block',
+                    marginBottom: '0.8mm',
+                    lineHeight: 1,
+                  }}
+                >
+                  Date &amp; Time
                 </span>
-                <span className="font-mono font-semibold text-[#0E0E0E] text-[8pt] block break-all">
-                  {txIdVal}
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '9pt',
+                    fontWeight: 600,
+                    color: '#0E0E0E',
+                    display: 'block',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {dateTimeVal}
                 </span>
               </div>
-            )}
 
-            {utrVal && (
               <div>
-                <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider mb-[0.6mm]">
-                  UTR Number
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '6.8pt',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.16em',
+                    color: '#6B6B6B',
+                    display: 'block',
+                    marginBottom: '0.8mm',
+                    lineHeight: 1,
+                  }}
+                >
+                  Payment Mode
                 </span>
-                <span className="font-mono font-semibold text-[#0E0E0E] text-[8.5pt] block">
-                  {utrVal}
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '9pt',
+                    fontWeight: 600,
+                    color: '#0E0E0E',
+                    display: 'block',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {modeVal}
                 </span>
               </div>
-            )}
 
-            {otherRows.map((r) => (
-              <div key={r.id}>
-                <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider mb-[0.6mm]">
-                  {r.label}
-                </span>
-                <span className="font-semibold text-[#0E0E0E] text-[8.5pt] block">
-                  {r.value}
-                </span>
-              </div>
-            ))}
+              {txIdVal && (
+                <div>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '6.8pt',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.16em',
+                      color: '#6B6B6B',
+                      display: 'block',
+                      marginBottom: '0.8mm',
+                      lineHeight: 1,
+                    }}
+                  >
+                    Transaction ID
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '9pt',
+                      fontWeight: 600,
+                      color: '#0E0E0E',
+                      display: 'block',
+                      lineHeight: 1.2,
+                    }}
+                    className="font-mono break-all"
+                  >
+                    {txIdVal}
+                  </span>
+                </div>
+              )}
+
+              {utrVal && (
+                <div>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '6.8pt',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.16em',
+                      color: '#6B6B6B',
+                      display: 'block',
+                      marginBottom: '0.8mm',
+                      lineHeight: 1,
+                    }}
+                  >
+                    UTR Number
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '9.5pt',
+                      fontWeight: 600,
+                      color: '#0E0E0E',
+                      display: 'block',
+                      lineHeight: 1.2,
+                    }}
+                    className="font-mono"
+                  >
+                    {utrVal}
+                  </span>
+                </div>
+              )}
+
+              {otherRows.map((r) => (
+                <div key={r.id}>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '6.8pt',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.16em',
+                      color: '#6B6B6B',
+                      display: 'block',
+                      marginBottom: '0.8mm',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {r.label}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '9pt',
+                      fontWeight: 600,
+                      color: '#0E0E0E',
+                      display: 'block',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {r.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -249,120 +384,325 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
         </div>
       )}
 
-      <div
-        style={{
-          border: '0.25mm solid #E2E8F0',
-          padding: '3.5mm 4mm',
-          backgroundColor: '#FFFFFF',
-        }}
-      >
-        <div style={headingStyle}>
-          {customText.paymentSectionHeading || 'PAYMENT DETAILS'}
+      <div className="w-full box-border select-none">
+        {/* Top Black Header */}
+        <div
+          className="flex items-center gap-[5mm] w-full"
+          style={{
+            backgroundColor: '#0E0E0E',
+            paddingLeft: '4.5mm',
+            paddingRight: '4.5mm',
+            height: '7.5mm',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Left Header */}
+          <div className="flex-1" style={{ minWidth: '60mm' }}>
+            <span
+              style={{
+                fontFamily: "'Poppins', sans-serif",
+                fontSize: '7pt',
+                fontWeight: 700,
+                letterSpacing: '0.22em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: '#FFFFFF',
+                lineHeight: 1,
+              }}
+            >
+              {customText.paymentSectionHeading || 'PAYMENT DETAILS'}
+            </span>
+          </div>
+
+          {hasBank && (
+            <>
+              <div
+                style={{
+                  width: '0.2mm',
+                  height: '4mm',
+                  backgroundColor: '#2A2A2A',
+                }}
+              />
+              <div className="flex-[1.5]">
+                <span
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontSize: '7pt',
+                    fontWeight: 700,
+                    letterSpacing: '0.22em',
+                    wordSpacing: '0.5em',
+                    textTransform: 'uppercase',
+                    color: '#FFFFFF',
+                    lineHeight: 1,
+                  }}
+                >
+                  BANK TRANSFER
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
-        <div className="flex items-stretch gap-[5mm] pt-[1.5mm] border-t border-[#F1F5F9]">
-          {/* Left Column: UPI */}
-          {hasUpi && (
-            <div className="flex-1 space-y-[1.2mm]">
-              <span style={itemLabelStyle}>PAY VIA UPI</span>
-              <p
-                style={{
-                  fontFamily: "'Poppins', sans-serif",
-                  fontWeight: 600,
-                  fontSize: '8.5pt',
-                  color: '#0E0E0E',
-                  lineHeight: 1.3,
-                }}
-                className="font-mono break-all"
-              >
-                {effectiveUpiVal}
-              </p>
-              {showQr && qrUrl && (
-                <div className="pt-[1mm] flex items-center gap-2">
-                  <img
-                    src={qrUrl}
-                    alt="UPI QR"
-                    style={{ width: '18mm', height: '18mm', objectFit: 'contain' }}
-                  />
+        {/* Gray Body */}
+        <div
+          className="w-full"
+          style={{
+            backgroundColor: '#F0F0F0',
+            padding: '3.5mm 4.5mm',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div className="flex items-stretch gap-[5mm]">
+            {/* Left Column: UPI */}
+            {hasUpi && (
+              <div className="flex-1 flex flex-col justify-between" style={{ minWidth: '60mm' }}>
+                <div>
                   <span
                     style={{
                       fontFamily: "'Poppins', sans-serif",
-                      fontSize: '5.5pt',
+                      fontSize: '6.8pt',
                       fontWeight: 600,
-                      color: '#8A8A8A',
-                      letterSpacing: '0.1em',
+                      letterSpacing: '0.16em',
                       textTransform: 'uppercase',
+                      color: '#6B6B6B',
+                      display: 'block',
+                      marginBottom: '0.8mm',
+                      lineHeight: 1,
                     }}
                   >
-                    Scan to Pay
+                    PAY VIA UPI
                   </span>
+                  <p
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 600,
+                      fontSize: '10pt',
+                      color: '#0E0E0E',
+                      lineHeight: 1.2,
+                      margin: 0,
+                    }}
+                    className="font-mono break-all"
+                  >
+                    {effectiveUpiVal}
+                  </p>
                 </div>
-              )}
-            </div>
-          )}
+                {showQr && qrUrl && (
+                  <div className="pt-[1.5mm] flex items-center gap-2">
+                    <div
+                      style={{
+                        width: '18mm',
+                        height: '18mm',
+                        border: '0.25mm solid #E0E0E0',
+                        padding: '0.5mm',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <img
+                        src={qrUrl}
+                        alt="UPI QR"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '6.8pt',
+                        fontWeight: 600,
+                        color: '#8A8A8A',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      Scan to Pay
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* Hairline Divider between UPI and Bank Transfer */}
-          {hasUpi && hasBank && (
-            <div className="w-[0.25mm] bg-[#EAEAEA] self-stretch" />
-          )}
+            {/* Divider between UPI and Bank Transfer */}
+            {hasUpi && hasBank && (
+              <div
+                style={{
+                  width: '0.2mm',
+                  backgroundColor: '#E5E5E5',
+                  alignSelf: 'stretch',
+                }}
+              />
+            )}
 
-          {/* Right Column: Bank Transfer */}
-          {hasBank && (
-            <div className="flex-[1.4] space-y-[1.2mm]">
-              <span style={itemLabelStyle}>BANK TRANSFER</span>
-              <div className="grid grid-cols-2 gap-x-[4mm] gap-y-[1.5mm]">
-                <div>
-                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
-                    Account Name
-                  </span>
-                  <span className="font-semibold text-[#0E0E0E] text-[8pt] block leading-tight truncate">
-                    {bankInfo.acName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
-                    Bank Name
-                  </span>
-                  <span className="font-semibold text-[#0E0E0E] text-[8pt] block leading-tight truncate">
-                    {bankInfo.bankName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
-                    Account Number
-                  </span>
-                  <span className="font-mono font-semibold text-[#0E0E0E] text-[8pt] block leading-tight">
-                    {bankInfo.acNo}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider leading-none mb-[0.6mm]">
-                    IFSC Code
-                  </span>
-                  <span className="font-mono font-semibold text-[#0E0E0E] text-[8pt] block leading-tight">
-                    {bankInfo.ifsc}
-                  </span>
+            {/* Right Column: Bank Transfer */}
+            {hasBank && (
+              <div className="flex-[1.5]">
+                <div className="grid grid-cols-2 gap-x-[4mm] gap-y-[2.2mm]">
+                  <div>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '6.8pt',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.16em',
+                        color: '#6B6B6B',
+                        display: 'block',
+                        marginBottom: '0.8mm',
+                        lineHeight: 1,
+                      }}
+                    >
+                      Account Name
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '9pt',
+                        fontWeight: 600,
+                        color: '#0E0E0E',
+                        display: 'block',
+                        lineHeight: 1.2,
+                      }}
+                      className="truncate"
+                    >
+                      {bankInfo.acName}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '6.8pt',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.16em',
+                        color: '#6B6B6B',
+                        display: 'block',
+                        marginBottom: '0.8mm',
+                        lineHeight: 1,
+                      }}
+                    >
+                      Bank Name
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '9pt',
+                        fontWeight: 600,
+                        color: '#0E0E0E',
+                        display: 'block',
+                        lineHeight: 1.2,
+                      }}
+                      className="truncate"
+                    >
+                      {bankInfo.bankName}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '6.8pt',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.16em',
+                        color: '#6B6B6B',
+                        display: 'block',
+                        marginBottom: '0.8mm',
+                        lineHeight: 1,
+                      }}
+                    >
+                      Account Number
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '9.5pt',
+                        fontWeight: 600,
+                        color: '#0E0E0E',
+                        display: 'block',
+                        lineHeight: 1.2,
+                      }}
+                      className="font-mono"
+                    >
+                      {bankInfo.acNo}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '6.8pt',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.16em',
+                        color: '#6B6B6B',
+                        display: 'block',
+                        marginBottom: '0.8mm',
+                        lineHeight: 1,
+                      }}
+                    >
+                      IFSC Code
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Poppins', sans-serif",
+                        fontSize: '9.5pt',
+                        fontWeight: 600,
+                        color: '#0E0E0E',
+                        display: 'block',
+                        lineHeight: 1.2,
+                      }}
+                      className="font-mono"
+                    >
+                      {bankInfo.ifsc}
+                    </span>
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* Custom rows if any */}
+          {otherActiveRows.length > 0 && (
+            <div
+              className="mt-2 pt-2 grid grid-cols-2 gap-2"
+              style={{ borderTop: '0.2mm solid #E5E5E5' }}
+            >
+              {otherActiveRows.map((r) => (
+                <div key={r.id}>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '6.8pt',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.16em',
+                      color: '#6B6B6B',
+                      display: 'block',
+                      marginBottom: '0.6mm',
+                    }}
+                  >
+                    {r.label}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Poppins', sans-serif",
+                      fontSize: '9pt',
+                      fontWeight: 600,
+                      color: '#0E0E0E',
+                      display: 'block',
+                    }}
+                  >
+                    {r.value}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>
-
-        {/* Custom rows if any */}
-        {otherActiveRows.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-[#F1F5F9] grid grid-cols-2 gap-2">
-            {otherActiveRows.map((r) => (
-              <div key={r.id}>
-                <span className="text-[#8A8A8A] text-[6pt] block uppercase tracking-wider mb-[0.6mm]">
-                  {r.label}
-                </span>
-                <span className="font-semibold text-[#0E0E0E] text-[8pt] block">
-                  {r.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

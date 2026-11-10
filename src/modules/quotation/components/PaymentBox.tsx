@@ -54,14 +54,12 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
       className="box-border select-none"
       style={{
         width: isFullWidth ? QUOTATION_TOKENS.layout.contentWidth : QUOTATION_TOKENS.layout.colWidth, // 174mm or 84mm
-        border: `0.25mm solid ${QUOTATION_TOKENS.colors.boxBorder}`,
         boxSizing: 'border-box',
-        overflow: 'hidden',
       }}
     >
       {/* Top Black Header Bar ("black patti jaise baki sabme hai") */}
       <div
-        className="flex items-center gap-[5mm]"
+        className="flex items-center gap-[5mm] w-full"
         style={{
           backgroundColor: QUOTATION_TOKENS.colors.black,
           paddingLeft: '4.5mm',
@@ -118,6 +116,7 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
 
       {/* Main Body with Light Gray Background ("niche ka gray me kar do") */}
       <div
+        className="w-full"
         style={{
           backgroundColor: QUOTATION_TOKENS.colors.noteBackground,
           padding: '3.5mm 4.5mm',
