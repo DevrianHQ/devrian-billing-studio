@@ -11,7 +11,7 @@ import { NoteBox } from './NoteBox';
 import { SignatureBlock } from './SignatureBlock';
 import { DocumentFooter } from './DocumentFooter';
 import { Watermark } from './Watermark';
-import { QuotationPreview } from './quotation/QuotationPreview';
+import { QuotationPreview } from '../../modules/quotation';
 
 interface DocumentPreviewProps {
   document: BillingDocument;

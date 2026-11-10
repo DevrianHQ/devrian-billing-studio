@@ -236,6 +236,39 @@ export interface BusinessProfile {
     receipt: DocumentCustomText;
     quotation?: DocumentCustomText;
   };
+
+  // Default section visibility per doc type
+  defaultSectionVisibility?: {
+    invoice?: DocumentSectionVisibility;
+    receipt?: DocumentSectionVisibility;
+    quotation?: DocumentSectionVisibility;
+  };
+
+  // Default quotation block arrangement
+  defaultQuotationBlocks?: QuotationBlockConfig[];
+
+  // One-Time Project Quotation Defaults
+  projectQuotationDefaults?: {
+    validityDays: number;
+    advancePercent: number;
+    balanceDueHours: number;
+    deliveryTimeline?: string;
+    termsTemplate: string[];
+    closingLine: string;
+  };
+
+  // Monthly Recurring Quotation Defaults
+  monthlyQuotationDefaults?: {
+    validityDays: number;
+    minTermMonths: number;
+    noticePeriodDays: number;
+    billingCycle: string;
+    paymentDueDescription: string;
+    autoRenewalDescription: string;
+    termsTemplate: string[];
+    deliverables: MonthlyDeliverable[];
+    closingLine: string;
+  };
 }
 
 export interface BillingDocument {
@@ -265,6 +298,7 @@ export interface BillingDocument {
   
   // Project
   projectName: string;
+  platforms?: string; // For Monthly Retainer e.g. "Instagram, Facebook"
   
   // Line items
   items: LineItem[];
@@ -309,7 +343,9 @@ export interface BillingDocument {
   quotationBlocks?: QuotationBlockConfig[];
   isCustomBlockLayout?: boolean;
   oneTimeSetupTotal?: number;
+  oneTimeSetupFee?: number;
   monthlyFeeTotal?: number;
+  monthlyFee?: number;
   dueToStartAmount?: number;
   minimumCommitmentTotal?: number;
   inclusions?: string;
@@ -351,3 +387,6 @@ export interface BillingDocument {
   sourceInvoiceId?: string;
   sourceQuotationId?: string;
 }
+
+export type AppDocument = BillingDocument;
+

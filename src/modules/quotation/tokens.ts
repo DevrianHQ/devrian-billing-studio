@@ -1,0 +1,193 @@
+/**
+ * DEVRIAN Billing Studio - Strict Quotation Design Tokens (LOCKED SPECIFICATION)
+ * Built strictly on DEVRIAN shared invoice & receipt tokens.
+ * No inline styles or raw px/mm/colour values outside these tokens.
+ */
+
+export const QUOTATION_TOKENS = {
+  font: {
+    family: "'Poppins', sans-serif",
+    scale: {
+      title: {
+        fontSize: '22pt',
+        fontWeight: 700,
+        color: '#FFFFFF',
+        textTransform: 'uppercase' as const,
+        lineHeight: 1,
+      },
+      eyebrow: {
+        fontSize: '6.5pt',
+        fontWeight: 500,
+        letterSpacing: '0.35em',
+        textTransform: 'uppercase' as const,
+        color: '#8A8A8A',
+        lineHeight: 1,
+      },
+      label: {
+        fontSize: '6.5pt',
+        fontWeight: 500,
+        letterSpacing: '0.3em',
+        wordSpacing: '0.6em',
+        textTransform: 'uppercase' as const,
+        color: '#8A8A8A',
+        lineHeight: 1,
+      },
+      value: {
+        fontSize: '10pt',
+        fontWeight: 600,
+        color: '#0E0E0E',
+        lineHeight: 1.25,
+      },
+      valueS: {
+        fontSize: '9pt',
+        fontWeight: 600,
+        color: '#0E0E0E',
+        lineHeight: 1.25,
+      },
+      sectionHeading: {
+        fontSize: '7pt',
+        fontWeight: 700,
+        letterSpacing: '0.3em',
+        wordSpacing: '0.6em',
+        textTransform: 'uppercase' as const,
+        color: '#0E0E0E',
+        lineHeight: 1,
+      },
+      body: {
+        fontSize: '8.5pt',
+        fontWeight: 400,
+        color: '#333333',
+        lineHeight: 1.5,
+      },
+      terms: {
+        fontSize: '8pt',
+        fontWeight: 400,
+        color: '#333333',
+        lineHeight: 1.4,
+      },
+      small: {
+        fontSize: '7pt',
+        fontWeight: 400,
+        color: '#6B6B6B',
+        lineHeight: 1.4,
+      },
+      tableHead: {
+        fontSize: '7pt',
+        fontWeight: 600,
+        letterSpacing: '0.2em',
+        wordSpacing: '0.5em',
+        textTransform: 'uppercase' as const,
+        color: '#FFFFFF',
+        lineHeight: 1,
+      },
+      numbers: {
+        fontVariantNumeric: 'tabular-nums' as const,
+      },
+    },
+  },
+
+  colors: {
+    black: '#0E0E0E',
+    white: '#FFFFFF',
+    greyLight: '#8A8A8A',
+    greyMid: '#6B6B6B',
+    greyDark: '#4A4A4A',
+    bodyText: '#333333',
+    rule: '#E5E5E5',
+    boxBorder: '#E0E0E0',
+    noteBackground: '#F0F0F0',
+    shapeDark1: '#1A1A1A',
+    shapeDark2: '#151515',
+    hairlineDark: '#2A2A2A',
+    taglineLight: '#D9D9D9',
+    metaLight: '#9A9A9A',
+  },
+
+  boxes: {
+    bordered: {
+      border: '0.25mm solid #E0E0E0',
+      backgroundColor: '#FFFFFF',
+      padding: '4mm',
+      borderRadius: '0mm',
+      boxSizing: 'border-box' as const,
+    },
+    note: {
+      backgroundColor: '#F0F0F0',
+      borderLeft: '1.2mm solid #0E0E0E',
+      padding: '4mm',
+      borderRadius: '0mm',
+      boxSizing: 'border-box' as const,
+    },
+  },
+
+  layout: {
+    pageWidth: '210mm',
+    pageHeight: '297mm',
+    pageMarginLeft: '18mm',
+    pageMarginRight: '18mm',
+    contentWidth: '174mm',
+    contentLeftX: 18,
+    contentRightX: 192,
+    footerRulePosition: '282mm',
+    footerTextY: '285mm',
+    footerHeight: '15mm',
+    ruleThickness: '0.2mm',
+    page1HeaderHeight: '48mm',
+    slimHeaderHeight: '16mm',
+    accentBarW: '8mm',
+    accentBarH: '0.6mm',
+    // 2-column layout (84mm + 6mm gutter + 84mm)
+    colWidth: '84mm',
+    colGutter: '6mm',
+    col1StartX: 18,
+    col1EndX: 102,
+    col2StartX: 108,
+    col2EndX: 192,
+  },
+
+  spacing: {
+    s2: '2mm',
+    s3: '3mm',
+    s4: '4mm',
+    s5: '5mm',
+    s6: '6mm',
+    s7: '7mm',
+    s8: '8mm',
+    s10: '10mm',
+    num: {
+      gap2: 2,
+      gap3: 3,
+      gap4: 4,
+      gap5: 5,
+      gap6: 6,
+      gap7: 7,
+      gap8: 8,
+      gap10: 10,
+      labelToValue: 1.5,
+      boxPadding: 4,
+      ruleThickness: 0.2,
+      tableHeaderH: 8.5,
+      tableRowStandardH: 9.5,
+      tableRowDenseH: 9.0,
+      tableRowSubDescH: 10.5,
+      metaRowH: 12,
+      partyRowH: 19,
+      totalBarH: 10.5,
+      summaryRowH: 5.5,
+      quietRowH: 5.0,
+      sectionHeadingH: 4.5,
+      instructionH: 4.0,
+      signaturePairProjectH: 26.0,
+      signaturePairMonthlyH: 33.0,
+      issueLinesH: 3.5,
+      closingLineH: 4.0,
+      gstLineH: 4.0,
+      page1HeaderH: 48,
+      footerRuleY: 282,
+      page1UsableH: 282 - 48, // 234mm
+      page2UsableH: 282 - 24, // 258mm
+    },
+  },
+} as const;
+
+export type QuotationTokens = typeof QUOTATION_TOKENS;

@@ -15,8 +15,8 @@ import {
   DEFAULT_MONTHLY_DELIVERABLES,
   DEFAULT_QUOTATION_BLOCKS,
 } from '../../services/seedData';
-import { resolveQuotationTermsList, PROJECT_DEFAULT_TERMS } from '../../services/policyAdapter';
-import { resolveQuotationPages } from '../../services/quotationLayoutEngine';
+import { resolveQuotationTermsList, PROJECT_DEFAULT_TERMS, MONTHLY_DEFAULT_TERMS } from '../../services/policyAdapter';
+import { resolveQuotationPages, measureQuotationLayout } from '../../services/quotationLayoutEngine';
 import { SignatureStudioModal } from '../common/SignatureStudioModal';
 import {
   Save,
@@ -152,42 +152,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       errors.push('Discount cannot be negative.');
     }
 
-    // Bracket placeholder validation for Quotations (blocks export until replaced or section hidden)
+    // Quotation layout & hard limits validation (strictly blocks export on overflow or hard limits)
     if (doc.type === 'quotation') {
-      const showInc = doc.sectionVisibility.showInclusions ?? false;
-      const showTime = doc.sectionVisibility.showTimeline ?? false;
-      const bracketRegex = /\[.+?\]/;
-
-      if (showInc && doc.inclusions && bracketRegex.test(doc.inclusions)) {
-        errors.push(
-          'Inclusions contain unfilled bracket placeholders (e.g. [...]). Please replace them or hide the section.'
-        );
+      const qLayout = measureQuotationLayout(doc);
+      if (qLayout.hasOverflow && qLayout.overflowMessage) {
+        errors.push(qLayout.overflowMessage);
       }
-      if (showInc && doc.exclusions && bracketRegex.test(doc.exclusions)) {
-        errors.push(
-          'Exclusions contain unfilled bracket placeholders (e.g. [...]). Please replace them or hide the section.'
-        );
-      }
-      if (showTime && doc.deliveryTimeline && bracketRegex.test(doc.deliveryTimeline)) {
-        errors.push(
-          'Delivery timeline contains unfilled bracket placeholders (e.g. [X]). Please replace them or hide the section.'
-        );
-      }
-
-      const showNotes = doc.sectionVisibility?.showFreeNotes ?? false;
-      if (showNotes && doc.freeNotes && bracketRegex.test(doc.freeNotes)) {
-        errors.push(
-          'Notes contain unfilled bracket placeholders (e.g. [...]). Please replace them or hide the section.'
-        );
-      }
-
-      // Monthly deliverables check
-      if (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') {
-        (doc.monthlyDeliverables || []).forEach((deliv) => {
-          if (bracketRegex.test(deliv.item) || bracketRegex.test(deliv.quantity)) {
-            errors.push(`Monthly deliverable "${deliv.item}" contains unfilled placeholder [ ]. Please replace or remove.`);
-          }
-        });
+      if (qLayout.hardLimitViolations && qLayout.hardLimitViolations.length > 0) {
+        errors.push(...qLayout.hardLimitViolations);
       }
     }
 
@@ -385,6 +357,22 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const isSwitchingToQuotation = newType === 'quotation';
     const totalProjectCost = doc.subtotal - (doc.discountAmount || 0) + (doc.totalTaxAmount || 0);
 
+    const isQuotationMonthly = isSwitchingToQuotation && doc.quotationType === 'monthly';
+    const projDefaults = business.projectQuotationDefaults;
+    const monthlyDefaults = business.monthlyQuotationDefaults;
+
+    const quotationValidityDays = isQuotationMonthly
+      ? (monthlyDefaults?.validityDays || 15)
+      : (projDefaults?.validityDays || business.quotationValidityDays || 15);
+
+    const quotationTerms = isQuotationMonthly
+      ? (monthlyDefaults?.termsTemplate || MONTHLY_DEFAULT_TERMS)
+      : (projDefaults?.termsTemplate || business.quotationTermsTemplate || PROJECT_DEFAULT_TERMS);
+
+    const quotationClosing = isQuotationMonthly
+      ? (monthlyDefaults?.closingLine || 'Thank you for considering DEVRIAN. We look forward to working with you.')
+      : (projDefaults?.closingLine || business.quotationClosingTemplate || 'Thank you for considering DEVRIAN. We look forward to working with you.');
+
     const updated: BillingDocument = {
       ...doc,
       // Assign fresh ID when switching types so original document is not overwritten
@@ -395,22 +383,22 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       documentNumber: newDocNumber,
       date: today,
       dueDate: newType === 'invoice' ? calculateDueDate(today, 'Net 7') : undefined,
-      validTill: newType === 'quotation' ? calculateValidTillDate(today, business.quotationValidityDays || 15) : undefined,
+      validTill: newType === 'quotation' ? calculateValidTillDate(today, quotationValidityDays) : undefined,
       status: isSwitchingToReceipt ? 'PAID' : isSwitchingToQuotation ? 'DRAFT' : 'UNPAID',
       amountReceived: isSwitchingToReceipt
         ? (doc.advanceReceived > 0 ? doc.advanceReceived : totalProjectCost)
         : undefined,
       totalProjectCost: isSwitchingToReceipt ? totalProjectCost : undefined,
-      advancePercent: isSwitchingToQuotation ? (doc.advancePercent || business.advancePercentDefault || 50) : doc.advancePercent,
+      advancePercent: isSwitchingToQuotation ? (doc.advancePercent || projDefaults?.advancePercent || business.advancePercentDefault || 50) : doc.advancePercent,
       quotationType: isSwitchingToQuotation ? (doc.quotationType || 'project') : undefined,
       contractStartDate: isSwitchingToQuotation ? (doc.contractStartDate || today) : undefined,
-      minTermMonths: isSwitchingToQuotation ? (doc.minTermMonths || 3) : undefined,
-      noticePeriodDays: isSwitchingToQuotation ? (doc.noticePeriodDays || 30) : undefined,
+      minTermMonths: isSwitchingToQuotation ? (doc.minTermMonths || monthlyDefaults?.minTermMonths || 3) : undefined,
+      noticePeriodDays: isSwitchingToQuotation ? (doc.noticePeriodDays || monthlyDefaults?.noticePeriodDays || 30) : undefined,
       autoRenewal: isSwitchingToQuotation ? (doc.autoRenewal ?? true) : undefined,
       monthlyDeliverables: isSwitchingToQuotation
         ? (doc.monthlyDeliverables && doc.monthlyDeliverables.length > 0
             ? doc.monthlyDeliverables
-            : [...DEFAULT_MONTHLY_DELIVERABLES])
+            : [...(monthlyDefaults?.deliverables || DEFAULT_MONTHLY_DELIVERABLES)])
         : undefined,
       quotationBlocks: isSwitchingToQuotation
         ? (doc.quotationBlocks && doc.quotationBlocks.length > 0
@@ -420,7 +408,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       inclusions: isSwitchingToQuotation ? (doc.inclusions ?? '') : doc.inclusions,
       exclusions: isSwitchingToQuotation ? (doc.exclusions ?? '') : doc.exclusions,
       deliveryTimeline: isSwitchingToQuotation ? (doc.deliveryTimeline ?? '') : doc.deliveryTimeline,
-      estimatedDelivery: isSwitchingToQuotation ? (doc.estimatedDelivery ?? '10 working days after advance and required materials') : doc.estimatedDelivery,
+      estimatedDelivery: isSwitchingToQuotation
+        ? (doc.estimatedDelivery ?? projDefaults?.deliveryTimeline ?? '10 working days after advance and required materials')
+        : doc.estimatedDelivery,
       freeNotes: isSwitchingToQuotation ? (doc.freeNotes ?? '') : doc.freeNotes,
       sectionVisibility: isSwitchingToQuotation
         ? { ...DEFAULT_QUOTATION_VISIBILITY }
@@ -431,17 +421,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           ? [...business.invoiceTermsTemplate]
           : newType === 'receipt'
           ? [...business.receiptTermsTemplate]
-          : resolveQuotationTermsList(
-              business.quotationTermsTemplate && business.quotationTermsTemplate.length > 0
-                ? [...business.quotationTermsTemplate]
-                : [...PROJECT_DEFAULT_TERMS],
-              business
-            ),
+          : resolveQuotationTermsList(quotationTerms, business),
       closingLine:
         newType === 'receipt'
           ? business.receiptClosingTemplate
           : newType === 'quotation'
-          ? (business.quotationClosingTemplate || 'Thank you for considering DEVRIAN. We look forward to working with you.')
+          ? quotationClosing
           : business.invoiceClosingTemplate,
     };
 

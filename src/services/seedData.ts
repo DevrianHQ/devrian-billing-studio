@@ -100,6 +100,16 @@ export const DEFAULT_INCLUSIONS = '';
 export const DEFAULT_EXCLUSIONS = '';
 export const DEFAULT_DELIVERY_TIMELINE = '';
 
+export const DEFAULT_MONTHLY_TERMS = [
+  'This quotation is valid until the date mentioned above. Prices may change after that.',
+  'The first month\'s fee is payable before work begins. Each following month\'s fee is payable in advance, before the cycle begins.',
+  'Minimum commitment is {{min_term_months}} months. The service continues monthly until cancelled with {{notice_days}} days\' written notice by email.',
+  'Deliverables are as listed per month. Unused deliverables do not carry forward unless agreed in writing.',
+  'Ad spend, paid promotions, shoots, stock and music licences are not included. Extra work is quoted separately.',
+  'If a payment is delayed, work and delivery pause and resume once payment is received.',
+  'All other terms are as per the signed Proposal and DEVRIAN Terms & Conditions v{{tnc_version}}.',
+];
+
 export const DEFAULT_QUOTATION_TERMS = [
   'This quotation is valid until the date mentioned above. Prices may change after that.',
   '{{advance_percent}}% advance is required to begin work. The balance is payable within {{balance_due_hours}} hours after project completion and approval.',
@@ -264,7 +274,28 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
     invoice: DEFAULT_INVOICE_TEXT,
     receipt: DEFAULT_RECEIPT_TEXT,
     quotation: DEFAULT_QUOTATION_TEXT,
-  }
+  },
+
+  projectQuotationDefaults: {
+    validityDays: 15,
+    advancePercent: 50,
+    balanceDueHours: 48,
+    deliveryTimeline: '10 working days after advance and required materials',
+    termsTemplate: [...DEFAULT_QUOTATION_TERMS],
+    closingLine: 'Thank you for considering DEVRIAN. We look forward to working with you.',
+  },
+
+  monthlyQuotationDefaults: {
+    validityDays: 15,
+    minTermMonths: 3,
+    noticePeriodDays: 30,
+    billingCycle: 'Monthly',
+    paymentDueDescription: 'In advance, before each cycle begins',
+    autoRenewalDescription: 'Auto-renews monthly until cancelled',
+    termsTemplate: [...DEFAULT_MONTHLY_TERMS],
+    deliverables: [...DEFAULT_MONTHLY_DELIVERABLES],
+    closingLine: 'Thank you for considering DEVRIAN. We look forward to working with you.',
+  },
 };
 
 export const SEED_RECEIPT: BillingDocument = {

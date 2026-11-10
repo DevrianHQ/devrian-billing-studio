@@ -1,14 +1,17 @@
-import { BillingDocument, BusinessProfile, Client } from '../types';
+import { BillingDocument, BusinessProfile, Client, DocumentType, DocumentSectionVisibility, QuotationBlockConfig } from '../types';
 import {
   DEFAULT_BUSINESS_PROFILE,
-  DEFAULT_QUOTATION_VISIBILITY,
-  DEFAULT_QUOTATION_BLOCKS,
+  DEFAULT_VISIBILITY,
   SEED_RECEIPT,
   SEED_INVOICE,
   SEED_CLIENTS,
+  DEFAULT_QUOTATION_VISIBILITY,
+  DEFAULT_QUOTATION_BLOCKS,
 } from './seedData';
 import { isAfter, parseISO } from 'date-fns';
 import { GoogleDriveSyncService } from './googleDriveSync';
+import { sanitizeQuotationNumber } from './numbering';
+import { QuotationTemplateService, QUOTATION_TEMPLATES_STORAGE_KEY } from '../modules/quotation/templates';
 
 const STORAGE_KEYS = {
   PROFILE: 'devrian_business_profile_v4',
@@ -16,6 +19,8 @@ const STORAGE_KEYS = {
   CLIENTS: 'devrian_clients_v4',
   DRAFT: 'devrian_active_draft_v4',
   LAST_BACKUP: 'devrian_last_backup_date_v4',
+  DEFAULT_VISIBILITY_PREFIX: 'devrian_default_visibility_',
+  DEFAULT_QUOTATION_BLOCKS: 'devrian_default_quotation_blocks_v4',
 };
 
 export interface AppBackupData {
@@ -24,6 +29,7 @@ export interface AppBackupData {
   businessProfile: BusinessProfile;
   documents: BillingDocument[];
   clients: Client[];
+  quotationTemplates?: any;
 }
 
 let persistTimeout: any = null;
@@ -98,6 +104,14 @@ export const StorageService = {
         return {
           ...DEFAULT_BUSINESS_PROFILE,
           ...parsed,
+          projectQuotationDefaults: {
+            ...DEFAULT_BUSINESS_PROFILE.projectQuotationDefaults,
+            ...(parsed.projectQuotationDefaults || {}),
+          },
+          monthlyQuotationDefaults: {
+            ...DEFAULT_BUSINESS_PROFILE.monthlyQuotationDefaults,
+            ...(parsed.monthlyQuotationDefaults || {}),
+          },
           upiId: parsed.upiId || 'inquiry@devrian.in',
           whiteLogoDataUrl: parsed.whiteLogoDataUrl || '/brand/devrian-symbol-pure-white.png',
           blackLogoDataUrl: parsed.blackLogoDataUrl || '/brand/devrian-symbol-dark.png',
@@ -165,12 +179,17 @@ export const StorageService = {
 
         // Auto-expire quotations whose validTill date has passed when status is SENT
         if (doc.type === 'quotation') {
+          const sanitizedNo = sanitizeQuotationNumber(doc.documentNumber, doc.date);
+          if (sanitizedNo !== doc.documentNumber) {
+            updated = true;
+            doc = { ...doc, documentNumber: sanitizedNo };
+          }
+
           if (!doc.quotationType) {
             updated = true;
             doc = {
               ...doc,
               quotationType: 'project',
-              quotationBlocks: doc.quotationBlocks || DEFAULT_QUOTATION_BLOCKS,
             };
           }
 
@@ -369,6 +388,68 @@ export const StorageService = {
     }
   },
 
+  // --- User-Preferred Defaults for Section Visibility & Page Alignment ---
+  getDefaultVisibility(type: DocumentType): DocumentSectionVisibility {
+    try {
+      const stored = localStorage.getItem(`${STORAGE_KEYS.DEFAULT_VISIBILITY_PREFIX}${type}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const fallback = type === 'quotation' ? DEFAULT_QUOTATION_VISIBILITY : DEFAULT_VISIBILITY;
+        return { ...fallback, ...parsed };
+      }
+      const profile = this.getProfile();
+      if (profile.defaultSectionVisibility?.[type]) {
+        const fallback = type === 'quotation' ? DEFAULT_QUOTATION_VISIBILITY : DEFAULT_VISIBILITY;
+        return { ...fallback, ...profile.defaultSectionVisibility[type] };
+      }
+    } catch (e) {
+      console.warn('Failed to get default visibility', e);
+    }
+    return type === 'quotation' ? { ...DEFAULT_QUOTATION_VISIBILITY } : { ...DEFAULT_VISIBILITY };
+  },
+
+  saveDefaultVisibility(type: DocumentType, vis: DocumentSectionVisibility): void {
+    try {
+      localStorage.setItem(`${STORAGE_KEYS.DEFAULT_VISIBILITY_PREFIX}${type}`, JSON.stringify(vis));
+      const profile = this.getProfile();
+      profile.defaultSectionVisibility = {
+        ...profile.defaultSectionVisibility,
+        [type]: vis,
+      };
+      this.saveProfile(profile);
+    } catch (e) {
+      console.warn('Failed to save default visibility', e);
+    }
+  },
+
+  getDefaultQuotationBlocks(): QuotationBlockConfig[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.DEFAULT_QUOTATION_BLOCKS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      const profile = this.getProfile();
+      if (profile.defaultQuotationBlocks && profile.defaultQuotationBlocks.length > 0) {
+        return [...profile.defaultQuotationBlocks];
+      }
+    } catch (e) {
+      console.warn('Failed to get default quotation blocks', e);
+    }
+    return [...DEFAULT_QUOTATION_BLOCKS];
+  },
+
+  saveDefaultQuotationBlocks(blocks: QuotationBlockConfig[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.DEFAULT_QUOTATION_BLOCKS, JSON.stringify(blocks));
+      const profile = this.getProfile();
+      profile.defaultQuotationBlocks = blocks;
+      this.saveProfile(profile);
+    } catch (e) {
+      console.warn('Failed to save default quotation blocks', e);
+    }
+  },
+
   // --- Backup & Restore ---
   getLastBackupDate(): string | null {
     return localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
@@ -392,9 +473,79 @@ export const StorageService = {
       businessProfile: exportedProfile,
       documents: this.getDocuments(),
       clients: this.getClients(),
+      quotationTemplates: QuotationTemplateService.loadTemplates(),
     };
     this.setLastBackupDate(new Date().toISOString());
     return backup;
+  },
+
+  /**
+   * One-time audit & cleanup: Prompt to archive old quotations and remove old flow engine records
+   */
+  checkAndPerformQuotationCleanup(): void {
+    if (typeof window === 'undefined') return;
+    const CLEANUP_KEY = 'devrian_quotation_v6_cleaned';
+    if (localStorage.getItem(CLEANUP_KEY)) return;
+
+    try {
+      const docsRaw = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+      const docs: BillingDocument[] = docsRaw ? JSON.parse(docsRaw) : [];
+      const oldQuotations = docs.filter((d) => d.type === 'quotation');
+      const oldTemplatesRaw =
+        localStorage.getItem('devrian_quotation_templates') ||
+        localStorage.getItem('devrian_default_quotation_blocks_v4');
+
+      if (oldQuotations.length > 0 || oldTemplatesRaw) {
+        const confirmed = window.confirm(
+          'Old quotations will be exported to a JSON file and removed. Continue?'
+        );
+        if (confirmed) {
+          // Export archive JSON
+          const archiveData = {
+            archiveDate: new Date().toISOString(),
+            description: 'DEVRIAN Billing Studio - Quotations Archive prior to v6.0 rebuild',
+            quotations: oldQuotations,
+            oldTemplates: oldTemplatesRaw ? JSON.parse(oldTemplatesRaw) : null,
+          };
+          const blob = new Blob([JSON.stringify(archiveData, null, 2)], {
+            type: 'application/json',
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `quotation-archive-${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+
+          // Delete old quotations and old template keys
+          const nonQuotations = docs.filter((d) => d.type !== 'quotation');
+          localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(nonQuotations));
+
+          // Also clear active draft if quotation
+          const draftRaw = localStorage.getItem(STORAGE_KEYS.DRAFT);
+          if (draftRaw) {
+            try {
+              const draft = JSON.parse(draftRaw);
+              if (draft.type === 'quotation') {
+                localStorage.removeItem(STORAGE_KEYS.DRAFT);
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          localStorage.removeItem('devrian_quotation_templates');
+          localStorage.removeItem('devrian_default_quotation_blocks_v4');
+          localStorage.removeItem('devrian_quotation_page_plan');
+        }
+      }
+      localStorage.setItem(CLEANUP_KEY, 'true');
+    } catch (e) {
+      console.warn('[StorageService] Error during one-time quotation cleanup:', e);
+      localStorage.setItem(CLEANUP_KEY, 'true');
+    }
   },
 
   importFullBackup(backupData: AppBackupData): boolean {
@@ -403,49 +554,35 @@ export const StorageService = {
         throw new Error('Invalid backup file format');
       }
 
-      // Safe migration for older backup versions (v1.0.0, v2.0.0, v3.0.0, v3.1.0)
+      if (backupData.quotationTemplates) {
+        QuotationTemplateService.saveTemplates(backupData.quotationTemplates);
+      }
+
       const migratedProfile: BusinessProfile = {
         ...DEFAULT_BUSINESS_PROFILE,
         ...backupData.businessProfile,
         quotationPattern: backupData.businessProfile.quotationPattern || 'DEV-QT-{YYYY}-{001}',
-        quotationTermsTemplate:
-          backupData.businessProfile.quotationTermsTemplate &&
-          backupData.businessProfile.quotationTermsTemplate.length > 0
-            ? backupData.businessProfile.quotationTermsTemplate
-            : DEFAULT_BUSINESS_PROFILE.quotationTermsTemplate,
         quotationValidityDays: backupData.businessProfile.quotationValidityDays || 15,
         advancePercentDefault: backupData.businessProfile.advancePercentDefault || 50,
         balanceDueHoursDefault: backupData.businessProfile.balanceDueHoursDefault || 48,
       };
 
-      const migratedDocs: BillingDocument[] = backupData.documents.map((d) => {
+      // Old backups containing quotations import everything except quotations, with a short notice
+      let hadOldQuotations = false;
+      const importedDocs: BillingDocument[] = (backupData.documents || []).filter((d) => {
         if (d.type === 'quotation') {
-          return {
-            ...d,
-            quotationType: d.quotationType || 'project',
-            contractStartDate: d.contractStartDate || d.date,
-            minTermMonths: d.minTermMonths || 3,
-            noticePeriodDays: d.noticePeriodDays || 30,
-            autoRenewal: d.autoRenewal ?? true,
-            monthlyDeliverables: d.monthlyDeliverables || [],
-            quotationBlocks: d.quotationBlocks || DEFAULT_QUOTATION_BLOCKS,
-            sectionVisibility: {
-              ...DEFAULT_QUOTATION_VISIBILITY,
-              ...(d.sectionVisibility || {}),
-              showInclusions: d.sectionVisibility?.showInclusions ?? false,
-              showTimeline: d.sectionVisibility?.showTimeline ?? false,
-              showFreeNotes: d.sectionVisibility?.showFreeNotes ?? false,
-              showAcceptance: d.sectionVisibility?.showAcceptance ?? true,
-              showClientSignature: d.sectionVisibility?.showClientSignature ?? true,
-              hideZeroRows: d.sectionVisibility?.hideZeroRows ?? true,
-            },
-          };
+          hadOldQuotations = true;
+          return false;
         }
-        return d;
+        return true;
       });
 
+      if (hadOldQuotations) {
+        alert('Old quotation records were excluded during import as per new quotation architecture.');
+      }
+
       this.saveProfile(migratedProfile);
-      this.saveDocuments(migratedDocs);
+      this.saveDocuments(importedDocs);
       if (backupData.clients) {
         this.saveClients(backupData.clients);
       }
