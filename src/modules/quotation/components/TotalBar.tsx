@@ -18,18 +18,18 @@ export const TotalBar: React.FC<TotalBarProps> = ({
       style={{
         backgroundColor: QUOTATION_TOKENS.colors.black,
         height: '10.5mm',
-        paddingLeft: '4mm',
-        paddingRight: '4mm',
+        paddingLeft: '3.5mm',
+        paddingRight: '3.5mm',
         color: QUOTATION_TOKENS.colors.white,
       }}
     >
       <span
         style={{
           fontFamily: QUOTATION_TOKENS.font.family,
-          fontSize: '7pt',
+          fontSize: '7.5pt',
           fontWeight: 700,
-          letterSpacing: '0.25em',
-          wordSpacing: '0.6em',
+          letterSpacing: '0.22em',
+          wordSpacing: '0.5em',
           textTransform: 'uppercase',
           color: QUOTATION_TOKENS.colors.white,
           lineHeight: 1,

@@ -69,22 +69,10 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
           width: QUOTATION_TOKENS.layout.contentWidth, // 174mm
         }}
       >
-        {/* Column 1 (Left): CLIENT ACCEPTANCE or Instruction text if client column is off */}
-        <div style={{ width: colWidth, height: '100%' }} className="flex flex-col justify-between">
+        {/* Column 1 (Left): CLIENT SIGNATURE (or Instruction text if client column is off) */}
+        <div style={{ width: colWidth, height: '100%' }} className="flex flex-col justify-end">
           {showClientSignature ? (
             <>
-              {/* Label on ONE line (never wraps) */}
-              <span
-                style={{
-                  fontFamily: QUOTATION_TOKENS.font.family,
-                  ...QUOTATION_TOKENS.font.scale.label,
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1,
-                }}
-              >
-                CLIENT ACCEPTANCE
-              </span>
-
               {/* Signature space (11mm Project, 18mm Monthly) */}
               <div style={{ height: signatureSpaceH }} className="w-full" />
 
@@ -159,20 +147,8 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
 
         {/* Gutter: 10mm (x=100 to x=110, handled by gutterWidth / justify-between) */}
 
-        {/* Column 2 (Right): FOR DEVRIAN */}
-        <div style={{ width: colWidth, height: '100%' }} className="flex flex-col justify-between">
-          {/* Label on ONE line (never wraps) */}
-          <span
-            style={{
-              fontFamily: QUOTATION_TOKENS.font.family,
-              ...QUOTATION_TOKENS.font.scale.label,
-              whiteSpace: 'nowrap',
-              lineHeight: 1,
-            }}
-          >
-            FOR DEVRIAN
-          </span>
-
+        {/* Column 2 (Right): DEVRIAN SIGNATURE (Right-to-Left aligned flush to right margin) */}
+        <div style={{ width: colWidth, height: '100%' }} className="flex flex-col justify-end">
           {/* Signature space (11mm Project, 18mm Monthly) */}
           <div
             style={{
@@ -180,8 +156,8 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
               position: 'relative',
               width: '100%',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              alignItems: 'flex-end',
+              justifyContent: 'flex-end',
             }}
           >
             {canShowSignature && (
@@ -194,6 +170,7 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
                   objectFit: 'contain',
                   position: 'absolute',
                   bottom: '1mm',
+                  right: 0,
                 }}
               />
             )}
@@ -208,14 +185,15 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
             }}
           />
 
-          {/* Name: "Dev Rajpoot" / Designation: "Founder, DEVRIAN" */}
-          <div className="pt-[1mm]">
+          {/* Name: "Dev Rajpoot" / Designation: "Founder, DEVRIAN" (Right-aligned) */}
+          <div className="pt-[1mm]" style={{ textAlign: 'right' }}>
             <p
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
                 ...QUOTATION_TOKENS.font.scale.valueS,
                 margin: 0,
                 lineHeight: 1.2,
+                textAlign: 'right',
               }}
             >
               Dev Rajpoot
@@ -227,14 +205,15 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
                 margin: 0,
                 marginTop: '0.4mm',
                 lineHeight: 1,
+                textAlign: 'right',
               }}
             >
               Founder, DEVRIAN
             </p>
           </div>
 
-          {/* "DATE" (LABEL) with formatted Date */}
-          <div className="flex items-center gap-1.5 pt-[1mm]">
+          {/* "DATE" (LABEL) with formatted Date (Right-aligned) */}
+          <div className="flex items-center justify-end gap-1.5 pt-[1mm]">
             <span
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,

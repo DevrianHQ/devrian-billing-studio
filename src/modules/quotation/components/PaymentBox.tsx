@@ -55,7 +55,7 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
       style={{
         ...QUOTATION_TOKENS.boxes.bordered,
         width: isFullWidth ? QUOTATION_TOKENS.layout.contentWidth : QUOTATION_TOKENS.layout.colWidth, // 174mm or 84mm
-        padding: '3.5mm 4mm',
+        padding: '3.5mm 4.5mm',
         boxSizing: 'border-box',
       }}
     >
@@ -63,9 +63,14 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
       <div
         style={{
           fontFamily: QUOTATION_TOKENS.font.family,
-          ...QUOTATION_TOKENS.font.scale.sectionHeading,
+          fontSize: '8pt',
+          fontWeight: 700,
+          letterSpacing: '0.22em',
+          wordSpacing: '0.5em',
+          textTransform: 'uppercase',
+          color: QUOTATION_TOKENS.colors.black,
           lineHeight: 1,
-          marginBottom: '2mm',
+          marginBottom: '2.5mm',
         }}
       >
         {heading}
@@ -73,10 +78,10 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
 
       {/* Main Body (Matching Invoice Structure) */}
       <div
-        className="flex items-stretch gap-[4.5mm]"
+        className="flex items-stretch gap-[5mm]"
         style={{
           borderTop: `${QUOTATION_TOKENS.layout.ruleThickness} solid ${QUOTATION_TOKENS.colors.rule}`,
-          paddingTop: '2mm',
+          paddingTop: '2.5mm',
         }}
       >
         {/* Left Column: PAY VIA UPI + QR */}
@@ -85,9 +90,15 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
             <span
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
+                fontSize: '7pt',
+                fontWeight: 600,
+                letterSpacing: '0.2em',
+                wordSpacing: '0.4em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.greyLight,
                 display: 'block',
-                marginBottom: '1mm',
+                marginBottom: '1.2mm',
+                lineHeight: 1,
               }}
             >
               PAY VIA UPI
@@ -95,10 +106,11 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
             <p
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                fontSize: '8.5pt',
+                fontSize: '10pt',
                 fontWeight: 600,
                 color: QUOTATION_TOKENS.colors.black,
                 margin: 0,
+                lineHeight: 1.2,
                 ...QUOTATION_TOKENS.font.scale.numbers,
               }}
             >
@@ -127,16 +139,16 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '6pt',
+                  fontSize: '6.8pt',
                   fontWeight: 600,
-                  letterSpacing: '0.1em',
+                  letterSpacing: '0.12em',
                   textTransform: 'uppercase',
                   color: QUOTATION_TOKENS.colors.greyLight,
-                  lineHeight: 1.2,
+                  lineHeight: 1.25,
                 }}
               >
                 Scan to Pay<br />
-                <strong style={{ color: QUOTATION_TOKENS.colors.black }}>
+                <strong style={{ color: QUOTATION_TOKENS.colors.black, fontSize: '7.5pt' }}>
                   {formatINR(amount)}
                 </strong>
               </span>
@@ -158,27 +170,34 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
           <span
             style={{
               fontFamily: QUOTATION_TOKENS.font.family,
-              ...QUOTATION_TOKENS.font.scale.label,
+              fontSize: '7pt',
+              fontWeight: 600,
+              letterSpacing: '0.2em',
+              wordSpacing: '0.4em',
+              textTransform: 'uppercase',
+              color: QUOTATION_TOKENS.colors.greyLight,
               display: 'block',
-              marginBottom: '1mm',
+              marginBottom: '1.2mm',
+              lineHeight: 1,
             }}
           >
             BANK TRANSFER
           </span>
 
-          <div className="grid grid-cols-2 gap-x-[3.5mm] gap-y-[1.8mm]">
+          <div className="grid grid-cols-2 gap-x-[4mm] gap-y-[2.2mm]">
             {/* Account Name */}
             <div>
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '6pt',
-                  fontWeight: 500,
+                  fontSize: '6.8pt',
+                  fontWeight: 600,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.2em',
+                  letterSpacing: '0.16em',
                   color: QUOTATION_TOKENS.colors.greyLight,
                   display: 'block',
-                  marginBottom: '0.5mm',
+                  marginBottom: '0.6mm',
+                  lineHeight: 1,
                 }}
               >
                 Account Name
@@ -186,7 +205,7 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '8pt',
+                  fontSize: '9pt',
                   fontWeight: 600,
                   color: QUOTATION_TOKENS.colors.black,
                   display: 'block',
@@ -202,13 +221,14 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '6pt',
-                  fontWeight: 500,
+                  fontSize: '6.8pt',
+                  fontWeight: 600,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.2em',
+                  letterSpacing: '0.16em',
                   color: QUOTATION_TOKENS.colors.greyLight,
                   display: 'block',
-                  marginBottom: '0.5mm',
+                  marginBottom: '0.6mm',
+                  lineHeight: 1,
                 }}
               >
                 Bank Name
@@ -216,7 +236,7 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '8pt',
+                  fontSize: '9pt',
                   fontWeight: 600,
                   color: QUOTATION_TOKENS.colors.black,
                   display: 'block',
@@ -232,13 +252,14 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '6pt',
-                  fontWeight: 500,
+                  fontSize: '6.8pt',
+                  fontWeight: 600,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.2em',
+                  letterSpacing: '0.16em',
                   color: QUOTATION_TOKENS.colors.greyLight,
                   display: 'block',
-                  marginBottom: '0.5mm',
+                  marginBottom: '0.6mm',
+                  lineHeight: 1,
                 }}
               >
                 Account Number
@@ -246,7 +267,7 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '8pt',
+                  fontSize: '9.5pt',
                   fontWeight: 600,
                   color: QUOTATION_TOKENS.colors.black,
                   display: 'block',
@@ -263,13 +284,14 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '6pt',
-                  fontWeight: 500,
+                  fontSize: '6.8pt',
+                  fontWeight: 600,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.2em',
+                  letterSpacing: '0.16em',
                   color: QUOTATION_TOKENS.colors.greyLight,
                   display: 'block',
-                  marginBottom: '0.5mm',
+                  marginBottom: '0.6mm',
+                  lineHeight: 1,
                 }}
               >
                 IFSC Code
@@ -277,7 +299,7 @@ export const PaymentBox: React.FC<PaymentBoxProps> = ({
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '8pt',
+                  fontSize: '9.5pt',
                   fontWeight: 600,
                   color: QUOTATION_TOKENS.colors.black,
                   display: 'block',

@@ -59,25 +59,30 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
   const rowStyle: React.CSSProperties = {
     fontFamily: QUOTATION_TOKENS.font.family,
     fontSize: '9pt',
-    fontWeight: 400,
+    fontWeight: 500,
     color: QUOTATION_TOKENS.colors.greyDark, // #4A4A4A
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     height: '5.5mm',
+    paddingLeft: '3.5mm',
+    paddingRight: '3.5mm',
     borderBottom: `${QUOTATION_TOKENS.layout.ruleThickness} solid ${QUOTATION_TOKENS.colors.rule}`,
     lineHeight: 1,
     boxSizing: 'border-box',
   };
 
-  // Quiet row style below the bar: 5mm, SMALL (7pt/400 #6B6B6B)
+  // Quiet row style below the bar: 5.5mm, 8pt label / 8.5pt value
   const quietRowStyle: React.CSSProperties = {
     fontFamily: QUOTATION_TOKENS.font.family,
-    ...QUOTATION_TOKENS.font.scale.small,
+    fontSize: '8pt',
+    fontWeight: 500,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: '5mm',
+    height: '5.5mm',
+    paddingLeft: '3.5mm',
+    paddingRight: '3.5mm',
     color: QUOTATION_TOKENS.colors.greyMid,
     lineHeight: 1,
     boxSizing: 'border-box',
@@ -97,6 +102,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
           <span>{labelSubtotal}</span>
           <span
             style={{
+              fontSize: '9.5pt',
               fontWeight: 600,
               color: QUOTATION_TOKENS.colors.black,
               ...QUOTATION_TOKENS.font.scale.numbers,
@@ -112,6 +118,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
             <span>{labelDiscount}</span>
             <span
               style={{
+                fontSize: '9.5pt',
                 fontWeight: 600,
                 color: QUOTATION_TOKENS.colors.black,
                 ...QUOTATION_TOKENS.font.scale.numbers,
@@ -128,6 +135,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
             <span>GST</span>
             <span
               style={{
+                fontSize: '9.5pt',
                 fontWeight: 600,
                 color: QUOTATION_TOKENS.colors.black,
                 ...QUOTATION_TOKENS.font.scale.numbers,
@@ -146,6 +154,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
           <span>Advance to start ({advancePercent}%)</span>
           <span
             style={{
+              fontSize: '8.5pt',
               fontWeight: 600,
               color: QUOTATION_TOKENS.colors.black,
               ...QUOTATION_TOKENS.font.scale.numbers,
@@ -161,6 +170,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
             <span>Balance due on completion (within 48 hrs)</span>
             <span
               style={{
+                fontSize: '8.5pt',
                 fontWeight: 600,
                 color: QUOTATION_TOKENS.colors.black,
                 ...QUOTATION_TOKENS.font.scale.numbers,
@@ -189,6 +199,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
           <span>One-time Setup Fee</span>
           <span
             style={{
+              fontSize: '9.5pt',
               fontWeight: 600,
               color: QUOTATION_TOKENS.colors.black,
               ...QUOTATION_TOKENS.font.scale.numbers,
@@ -204,6 +215,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
         <span>Monthly Retainer</span>
         <span
           style={{
+            fontSize: '9.5pt',
             fontWeight: 600,
             color: QUOTATION_TOKENS.colors.black,
             ...QUOTATION_TOKENS.font.scale.numbers,
@@ -219,6 +231,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
           <span>{labelDiscount}</span>
           <span
             style={{
+              fontSize: '9.5pt',
               fontWeight: 600,
               color: QUOTATION_TOKENS.colors.black,
               ...QUOTATION_TOKENS.font.scale.numbers,
@@ -237,6 +250,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
         <span>From Month 2 onwards</span>
         <span
           style={{
+            fontSize: '8.5pt',
             fontWeight: 600,
             color: QUOTATION_TOKENS.colors.black,
             ...QUOTATION_TOKENS.font.scale.numbers,
@@ -252,6 +266,7 @@ export const SummaryBlock: React.FC<SummaryBlockProps> = ({
           <span>Minimum commitment ({minTermMonths} months)</span>
           <span
             style={{
+              fontSize: '8.5pt',
               fontWeight: 600,
               color: QUOTATION_TOKENS.colors.black,
               ...QUOTATION_TOKENS.font.scale.numbers,
