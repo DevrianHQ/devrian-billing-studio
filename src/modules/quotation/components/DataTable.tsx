@@ -38,7 +38,12 @@ export const DataTable: React.FC<DataTableProps> = ({
             <th
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.tableHead,
+                fontSize: '7.5pt',
+                fontWeight: 700,
+                letterSpacing: '0.2em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.white,
                 textAlign: 'left',
                 width: '10mm',
                 paddingLeft: '3mm',
@@ -51,7 +56,12 @@ export const DataTable: React.FC<DataTableProps> = ({
             <th
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.tableHead,
+                fontSize: '7.5pt',
+                fontWeight: 700,
+                letterSpacing: '0.2em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.white,
                 textAlign: 'left',
                 width: '84mm',
                 paddingLeft: '2.5mm',
@@ -65,7 +75,12 @@ export const DataTable: React.FC<DataTableProps> = ({
             <th
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.tableHead,
+                fontSize: '7.5pt',
+                fontWeight: 700,
+                letterSpacing: '0.2em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.white,
                 textAlign: 'right',
                 width: '16mm',
                 paddingRight: '3mm',
@@ -78,7 +93,12 @@ export const DataTable: React.FC<DataTableProps> = ({
             <th
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.tableHead,
+                fontSize: '7.5pt',
+                fontWeight: 700,
+                letterSpacing: '0.2em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.white,
                 textAlign: 'right',
                 width: '30mm',
                 paddingRight: '3mm',
@@ -91,7 +111,12 @@ export const DataTable: React.FC<DataTableProps> = ({
             <th
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.tableHead,
+                fontSize: '7.5pt',
+                fontWeight: 700,
+                letterSpacing: '0.2em',
+                wordSpacing: '0.5em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.white,
                 textAlign: 'right',
                 width: '34mm',
                 paddingRight: '3.5mm',
@@ -122,7 +147,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     paddingLeft: '3mm',
                     verticalAlign: 'middle',
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    fontSize: '8.5pt',
+                    fontSize: '9pt',
                     fontWeight: 600,
                     color: QUOTATION_TOKENS.colors.greyLight,
                     ...QUOTATION_TOKENS.font.scale.numbers,
@@ -145,7 +170,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     <span
                       style={{
                         fontFamily: QUOTATION_TOKENS.font.family,
-                        fontSize: '9.5pt',
+                        fontSize: '10pt',
                         fontWeight: 600,
                         color: QUOTATION_TOKENS.colors.black,
                         lineHeight: 1.25,
@@ -156,7 +181,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     {isOneTimeSetup && (
                       <span
                         style={{
-                          fontSize: '6.5pt',
+                          fontSize: '6.8pt',
                           fontWeight: 700,
                           letterSpacing: '0.12em',
                           textTransform: 'uppercase',
@@ -175,7 +200,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     <p
                       style={{
                         fontFamily: QUOTATION_TOKENS.font.family,
-                        fontSize: '7pt',
+                        fontSize: '7.8pt',
                         fontWeight: 400,
                         color: QUOTATION_TOKENS.colors.greyMid,
                         margin: 0,
@@ -197,7 +222,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     paddingRight: '3mm',
                     verticalAlign: 'middle',
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    fontSize: '9pt',
+                    fontSize: '9.5pt',
                     fontWeight: 500,
                     color: QUOTATION_TOKENS.colors.black,
                     ...QUOTATION_TOKENS.font.scale.numbers,
@@ -215,7 +240,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     paddingRight: '3mm',
                     verticalAlign: 'middle',
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    fontSize: '9pt',
+                    fontSize: '9.5pt',
                     fontWeight: 500,
                     color: QUOTATION_TOKENS.colors.black,
                     ...QUOTATION_TOKENS.font.scale.numbers,
@@ -233,7 +258,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                     paddingRight: '3.5mm',
                     verticalAlign: 'middle',
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    fontSize: '9.5pt',
+                    fontSize: '10pt',
                     fontWeight: 600,
                     color: QUOTATION_TOKENS.colors.black,
                     ...QUOTATION_TOKENS.font.scale.numbers,

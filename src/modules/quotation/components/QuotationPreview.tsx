@@ -336,7 +336,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '6.5pt',
+                            fontSize: '7.2pt',
                             fontWeight: 600,
                             textTransform: 'uppercase',
                             letterSpacing: '0.22em',
@@ -351,7 +351,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '9.5pt',
+                            fontSize: '10.5pt',
                             fontWeight: 700,
                             color: QUOTATION_TOKENS.colors.white,
                             display: 'block',
@@ -364,7 +364,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           <span
                             style={{
                               fontFamily: QUOTATION_TOKENS.font.family,
-                              fontSize: '7.5pt',
+                              fontSize: '8.2pt',
                               color: QUOTATION_TOKENS.colors.metaLight,
                               display: 'block',
                               marginTop: '0.8mm',
@@ -378,7 +378,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           <span
                             style={{
                               fontFamily: QUOTATION_TOKENS.font.family,
-                              fontSize: '7.5pt',
+                              fontSize: '8.2pt',
                               color: QUOTATION_TOKENS.colors.metaLight,
                               display: 'block',
                               marginTop: '0.8mm',
@@ -393,7 +393,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           <span
                             style={{
                               fontFamily: QUOTATION_TOKENS.font.family,
-                              fontSize: '7.5pt',
+                              fontSize: '8.2pt',
                               color: QUOTATION_TOKENS.colors.metaLight,
                               display: 'block',
                               marginTop: '0.8mm',
@@ -407,7 +407,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           <span
                             style={{
                               fontFamily: QUOTATION_TOKENS.font.family,
-                              fontSize: '7pt',
+                              fontSize: '7.5pt',
                               color: QUOTATION_TOKENS.colors.greyLight,
                               display: 'block',
                               marginTop: '0.8mm',
@@ -423,7 +423,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '6.5pt',
+                            fontSize: '7.2pt',
                             fontWeight: 600,
                             textTransform: 'uppercase',
                             letterSpacing: '0.22em',
@@ -438,7 +438,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '9.5pt',
+                            fontSize: '10.5pt',
                             fontWeight: 700,
                             color: QUOTATION_TOKENS.colors.white,
                             display: 'block',
@@ -450,7 +450,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '8pt',
+                            fontSize: '8.5pt',
                             fontWeight: 500,
                             color: QUOTATION_TOKENS.colors.taglineLight,
                             display: 'block',
@@ -463,7 +463,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '7.5pt',
+                            fontSize: '8.2pt',
                             color: QUOTATION_TOKENS.colors.metaLight,
                             display: 'block',
                             marginTop: '0.8mm',
@@ -486,7 +486,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '6.5pt',
+                            fontSize: '7.2pt',
                             fontWeight: 600,
                             textTransform: 'uppercase',
                             letterSpacing: '0.22em',
@@ -501,7 +501,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '9.5pt',
+                            fontSize: '10.5pt',
                             fontWeight: 700,
                             color: QUOTATION_TOKENS.colors.white,
                             display: 'block',
@@ -514,7 +514,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           <span
                             style={{
                               fontFamily: QUOTATION_TOKENS.font.family,
-                              fontSize: '7.5pt',
+                              fontSize: '8.2pt',
                               fontWeight: 500,
                               color: QUOTATION_TOKENS.colors.metaLight,
                               display: 'block',
@@ -531,7 +531,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '6.5pt',
+                            fontSize: '7.2pt',
                             fontWeight: 600,
                             textTransform: 'uppercase',
                             letterSpacing: '0.22em',
@@ -545,7 +545,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         <span
                           style={{
                             fontFamily: QUOTATION_TOKENS.font.family,
-                            fontSize: '9.5pt',
+                            fontSize: '10.5pt',
                             fontWeight: 700,
                             color: QUOTATION_TOKENS.colors.white,
                             display: 'block',
@@ -564,7 +564,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                     style={{
                       marginTop: '3.5mm',
                       fontFamily: QUOTATION_TOKENS.font.family,
-                      fontSize: '6.5pt',
+                      fontSize: '7.2pt',
                       color: QUOTATION_TOKENS.colors.greyMid,
                     }}
                   >
@@ -682,11 +682,12 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       <p
                         style={{
                           fontFamily: QUOTATION_TOKENS.font.family,
-                          ...QUOTATION_TOKENS.font.scale.small,
+                          fontSize: '8.5pt',
                           fontStyle: 'italic',
+                          fontWeight: 400,
                           color: QUOTATION_TOKENS.colors.greyDark,
                           margin: 0,
-                          lineHeight: 1,
+                          lineHeight: 1.3,
                         }}
                       >
                         Prices exclude GST. Taxes will be added if applicable at billing.
@@ -981,11 +982,12 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       <p
                         style={{
                           fontFamily: QUOTATION_TOKENS.font.family,
-                          ...QUOTATION_TOKENS.font.scale.small,
+                          fontSize: '8.5pt',
                           fontStyle: 'italic',
+                          fontWeight: 400,
                           color: QUOTATION_TOKENS.colors.greyDark,
                           margin: 0,
-                          lineHeight: 1,
+                          lineHeight: 1.3,
                         }}
                       >
                         Prices exclude GST. Taxes will be added if applicable at billing.

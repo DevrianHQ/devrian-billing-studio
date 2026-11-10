@@ -45,16 +45,16 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
       }}
     >
       {/* 1. Instruction line: 4mm tall, then 2mm gap */}
-      <div style={{ height: '4mm', marginBottom: '2mm' }} className="flex items-center">
+      <div style={{ height: '4.5mm', marginBottom: '2mm' }} className="flex items-center">
         <p
           style={{
             fontFamily: QUOTATION_TOKENS.font.family,
-            fontSize: QUOTATION_TOKENS.font.scale.body.fontSize,
+            fontSize: '9.2pt',
             fontStyle: 'italic',
             fontWeight: 400,
             color: QUOTATION_TOKENS.colors.greyDark, // #4A4A4A
             margin: 0,
-            lineHeight: 1,
+            lineHeight: 1.2,
           }}
         >
           {instructionText}
@@ -90,7 +90,9 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
                 <p
                   style={{
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    ...QUOTATION_TOKENS.font.scale.valueS,
+                    fontSize: '10.5pt',
+                    fontWeight: 600,
+                    color: QUOTATION_TOKENS.colors.black,
                     margin: 0,
                     lineHeight: 1.2,
                   }}
@@ -100,9 +102,11 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
                 <p
                   style={{
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    ...QUOTATION_TOKENS.font.scale.small,
+                    fontSize: '8.5pt',
+                    fontWeight: 400,
+                    color: QUOTATION_TOKENS.colors.greyMid,
                     margin: 0,
-                    marginTop: '0.4mm',
+                    marginTop: '0.6mm',
                     lineHeight: 1,
                   }}
                 >
@@ -111,11 +115,15 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
               </div>
 
               {/* "DATE" (LABEL) with a 30mm line */}
-              <div className="flex items-center gap-1.5 pt-[1mm]">
+              <div className="flex items-center gap-1.5 pt-[1.5mm]">
                 <span
                   style={{
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    ...QUOTATION_TOKENS.font.scale.label,
+                    fontSize: '7.5pt',
+                    fontWeight: 600,
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: QUOTATION_TOKENS.colors.greyMid,
                     lineHeight: 1,
                   }}
                 >
@@ -190,7 +198,9 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
             <p
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
+                fontSize: '10.5pt',
+                fontWeight: 600,
+                color: QUOTATION_TOKENS.colors.black,
                 margin: 0,
                 lineHeight: 1.2,
                 textAlign: 'right',
@@ -201,9 +211,11 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
             <p
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.small,
+                fontSize: '8.5pt',
+                fontWeight: 400,
+                color: QUOTATION_TOKENS.colors.greyMid,
                 margin: 0,
-                marginTop: '0.4mm',
+                marginTop: '0.6mm',
                 lineHeight: 1,
                 textAlign: 'right',
               }}
@@ -213,11 +225,15 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
           </div>
 
           {/* "DATE" (LABEL) with formatted Date (Right-aligned) */}
-          <div className="flex items-center justify-end gap-1.5 pt-[1mm]">
+          <div className="flex items-center justify-end gap-1.5 pt-[1.5mm]">
             <span
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
+                fontSize: '7.5pt',
+                fontWeight: 600,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: QUOTATION_TOKENS.colors.greyMid,
                 lineHeight: 1,
               }}
             >
@@ -226,9 +242,9 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
             <span
               style={{
                 fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.small,
+                fontSize: '8.5pt',
                 color: QUOTATION_TOKENS.colors.black,
-                fontWeight: 500,
+                fontWeight: 600,
                 lineHeight: 1,
               }}
             >
@@ -238,20 +254,18 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
         </div>
       </div>
 
-      {/* 3. Under the DEVRIAN column only, right-aligned SMALL, printed once (3.5mm block height) */}
+      {/* 3. Under the DEVRIAN column only, right-aligned SMALL, printed once */}
       <div
         className="flex flex-col items-end w-full"
         style={{
-          height: `${QUOTATION_TOKENS.spacing.num.issueLinesH}mm`, // 3.5mm
-          marginTop: '1.5mm',
+          marginTop: '2mm',
         }}
       >
         <span
           style={{
             fontFamily: QUOTATION_TOKENS.font.family,
-            ...QUOTATION_TOKENS.font.scale.small,
-            fontSize: '6.5pt',
-            lineHeight: 1.15,
+            fontSize: '7.5pt',
+            lineHeight: 1.25,
             color: QUOTATION_TOKENS.colors.greyMid,
             textAlign: 'right',
           }}
@@ -262,9 +276,8 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
           <span
             style={{
               fontFamily: QUOTATION_TOKENS.font.family,
-              ...QUOTATION_TOKENS.font.scale.small,
-              fontSize: '6pt',
-              lineHeight: 1.15,
+              fontSize: '6.8pt',
+              lineHeight: 1.25,
               color: QUOTATION_TOKENS.colors.greyLight,
               textAlign: 'right',
             }}

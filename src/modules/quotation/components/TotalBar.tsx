@@ -26,7 +26,7 @@ export const TotalBar: React.FC<TotalBarProps> = ({
       <span
         style={{
           fontFamily: QUOTATION_TOKENS.font.family,
-          fontSize: '7.5pt',
+          fontSize: '8pt',
           fontWeight: 700,
           letterSpacing: '0.22em',
           wordSpacing: '0.5em',
@@ -40,7 +40,7 @@ export const TotalBar: React.FC<TotalBarProps> = ({
       <span
         style={{
           fontFamily: QUOTATION_TOKENS.font.family,
-          fontSize: '12pt',
+          fontSize: '12.5pt',
           fontWeight: 700,
           color: QUOTATION_TOKENS.colors.white,
           lineHeight: 1,

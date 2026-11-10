@@ -46,26 +46,31 @@ export const NoteBox: React.FC<NoteBoxProps> = ({
         <span
           style={{
             fontFamily: QUOTATION_TOKENS.font.family,
-            ...QUOTATION_TOKENS.font.scale.sectionHeading,
+            fontSize: '7.5pt',
+            fontWeight: 700,
+            letterSpacing: '0.22em',
+            wordSpacing: '0.5em',
+            textTransform: 'uppercase',
+            color: QUOTATION_TOKENS.colors.black,
             display: 'block',
             lineHeight: 1,
-            marginBottom: '2mm',
+            marginBottom: '2.5mm',
           }}
         >
           {heading}
         </span>
 
-        {/* Numbered List at TERMS size with 2mm gap between points, numbers in 700 weight */}
+        {/* Numbered List with 2mm gap between points, numbers in 700 weight */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2mm' }}>
           {notes.map((note, index) => (
             <div key={index} className="flex items-start">
               <span
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: QUOTATION_TOKENS.font.scale.terms.fontSize,
+                  fontSize: '8.5pt',
                   fontWeight: 700,
                   color: QUOTATION_TOKENS.colors.black,
-                  lineHeight: QUOTATION_TOKENS.font.scale.terms.lineHeight,
+                  lineHeight: 1.4,
                   width: '4.5mm',
                   flexShrink: 0,
                 }}
@@ -75,9 +80,12 @@ export const NoteBox: React.FC<NoteBoxProps> = ({
               <p
                 style={{
                   fontFamily: QUOTATION_TOKENS.font.family,
-                  ...QUOTATION_TOKENS.font.scale.terms,
+                  fontSize: '8.5pt',
+                  fontWeight: 400,
+                  color: QUOTATION_TOKENS.colors.bodyText,
                   margin: 0,
                   flex: 1,
+                  lineHeight: 1.4,
                 }}
               >
                 {resolveVariables(note)}

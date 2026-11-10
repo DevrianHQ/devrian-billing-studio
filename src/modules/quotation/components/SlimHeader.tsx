@@ -68,7 +68,7 @@ export const SlimHeader: React.FC<SlimHeaderProps> = ({
           <span
             style={{
               fontFamily: QUOTATION_TOKENS.font.family,
-              fontSize: '7pt',
+              fontSize: '7.5pt',
               fontWeight: 600,
               letterSpacing: '0.18em',
               color: QUOTATION_TOKENS.colors.greyMid,
@@ -83,7 +83,7 @@ export const SlimHeader: React.FC<SlimHeaderProps> = ({
         <span
           style={{
             fontFamily: QUOTATION_TOKENS.font.family,
-            fontSize: '7pt',
+            fontSize: '7.5pt',
             fontWeight: 700,
             letterSpacing: '0.18em',
             color: QUOTATION_TOKENS.colors.greyMid,

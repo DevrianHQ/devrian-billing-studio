@@ -34,13 +34,13 @@ export const Footer: React.FC<FooterProps> = ({
         className="flex items-center justify-between h-full"
         style={{
           fontFamily: QUOTATION_TOKENS.font.family,
-          ...QUOTATION_TOKENS.font.scale.small,
-          color: QUOTATION_TOKENS.colors.greyLight,
+          fontSize: '7.5pt',
+          color: QUOTATION_TOKENS.colors.greyMid,
         }}
       >
         {/* Left: Brand & Document No */}
         <div>
-          <span>DEVRIAN</span>
+          <span style={{ fontWeight: 600 }}>DEVRIAN</span>
           <span className="mx-1.5 opacity-40">|</span>
           <span>Quotation {documentNumber}</span>
         </div>
@@ -54,13 +54,13 @@ export const Footer: React.FC<FooterProps> = ({
         <div
           className="flex flex-col items-end"
           style={{
-            lineHeight: 1.2,
+            lineHeight: 1.25,
           }}
         >
           <span
             style={{
               fontFamily: QUOTATION_TOKENS.font.family,
-              fontSize: '6.5pt',
+              fontSize: '7.5pt',
               fontWeight: 700,
               color: QUOTATION_TOKENS.colors.greyMid, // #6B6B6B
             }}
@@ -70,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({
           <span
             style={{
               fontFamily: QUOTATION_TOKENS.font.family,
-              fontSize: '6.5pt',
+              fontSize: '7pt',
               fontWeight: 400,
               color: QUOTATION_TOKENS.colors.greyLight, // #8A8A8A
               ...QUOTATION_TOKENS.font.scale.numbers,
