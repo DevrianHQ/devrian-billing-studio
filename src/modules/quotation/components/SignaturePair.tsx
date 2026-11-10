@@ -31,8 +31,8 @@ export const SignaturePair: React.FC<SignaturePairProps> = ({
   const pairTotalH = isProject ? `${QUOTATION_TOKENS.spacing.num.signaturePairProjectH}mm` : `${QUOTATION_TOKENS.spacing.num.signaturePairMonthlyH}mm`; // 28mm or 35mm
   const colWidth = '82mm';
   const gutterWidth = '10mm';
-  const canShowSignature = applySignature && isFinal && Boolean(signatureUrl);
-  const sigMaxHeight = isProject ? '13mm' : '18mm';
+  const canShowSignature = (applySignature || isFinal) && Boolean(signatureUrl);
+  const sigMaxHeight = isProject ? '16mm' : '22mm';
 
   return (
     <div

@@ -335,7 +335,7 @@ export const SEED_RECEIPT: BillingDocument = {
   date: '2026-11-05',
   status: 'PAID',
   isFinal: true,
-  applySignature: false,
+  applySignature: true,
   customText: {
     ...DEFAULT_RECEIPT_TEXT,
     eyebrow: 'ADVANCE PAYMENT',
@@ -400,7 +400,7 @@ export const SEED_INVOICE: BillingDocument = {
   dueDate: '2026-11-15',
   status: 'UNPAID',
   isFinal: false,
-  applySignature: false,
+  applySignature: true,
   customText: {
     ...DEFAULT_INVOICE_TEXT,
     eyebrow: 'INVOICE',
@@ -470,7 +470,7 @@ export const SEED_QUOTATION: BillingDocument = {
   validTill: '2026-11-25',
   status: 'DRAFT',
   isFinal: false,
-  applySignature: false,
+  applySignature: true,
   customText: {
     ...DEFAULT_QUOTATION_TEXT,
   },

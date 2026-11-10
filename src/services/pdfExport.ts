@@ -19,16 +19,28 @@ export interface ExportPdfOptions {
  * Fallback: html2canvas at 3x resolution.
  */
 async function renderPageElementToPng(el: HTMLElement): Promise<string> {
+  // Dynamically detect page background color to preserve dark cover pages (#0E0E0E) vs white body pages (#ffffff)
+  const computedBg = typeof window !== 'undefined' ? window.getComputedStyle(el).backgroundColor : '';
+  const isDark =
+    computedBg === 'rgb(14, 14, 14)' ||
+    computedBg.includes('14, 14, 14') ||
+    el.style.backgroundColor === '#0E0E0E' ||
+    el.style.backgroundColor === 'rgb(14, 14, 14)' ||
+    el.classList.contains('bg-[#0E0E0E]') ||
+    el.classList.contains('bg-[#0e0e0e]');
+  const pageBgColor = isDark ? '#0E0E0E' : '#ffffff';
+
   try {
     const dataUrl = await toPng(el, {
       pixelRatio: 3,
       quality: 1.0,
-      backgroundColor: '#ffffff',
+      backgroundColor: pageBgColor,
       cacheBust: true,
       style: {
         transform: 'none',
         boxShadow: 'none',
         margin: '0',
+        backgroundColor: pageBgColor,
       },
     });
     if (dataUrl && dataUrl.length > 1000) {
@@ -43,7 +55,7 @@ async function renderPageElementToPng(el: HTMLElement): Promise<string> {
     scale: 3,
     useCORS: true,
     logging: false,
-    backgroundColor: '#ffffff',
+    backgroundColor: pageBgColor,
     allowTaint: true,
     scrollX: 0,
     scrollY: 0,
@@ -99,7 +111,7 @@ export async function exportElementsToPdf(
   });
 
   // Allow DOM to settle after resetting transforms
-  await new Promise((resolve) => setTimeout(resolve, 80));
+  await new Promise((resolve) => setTimeout(resolve, 150));
 
   const pdf = new jsPDF({
     orientation: 'portrait',

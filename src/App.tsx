@@ -234,7 +234,7 @@ export const App: React.FC = () => {
         validTill: type === 'quotation' ? calculateValidTillDate(today, profile.quotationValidityDays || 15) : undefined,
         status: type === 'receipt' ? 'PAID' : type === 'quotation' ? 'DRAFT' : 'UNPAID',
         isFinal: false,
-        applySignature: false,
+        applySignature: Boolean(profile.signatureDataUrl),
         customText: { ...defText },
         sectionVisibility: StorageService.getDefaultVisibility(type),
         paymentRows: defaultPaymentRows,
