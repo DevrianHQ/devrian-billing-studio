@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Client, BillingDocument } from '../../types';
 import { formatINR } from '../../services/indianCurrency';
 import { formatDisplayDate } from '../../services/dateUtils';
+import { calculateDocumentFinancials, getDocumentDisplayAmount } from '../../services/financialCalculations';
 import { User, Plus, Edit2, Trash2, Mail, Phone, MapPin, FileText, ArrowRight } from 'lucide-react';
 
 interface ClientsViewProps {
@@ -49,25 +50,10 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
     let pending = 0;
 
     clientDocs.forEach((d) => {
-      if (d.type === 'invoice') {
-        const total = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
-        billed += total;
-        const hasLinkedReceipt = clientDocs.some(
-          (r) => r.type === 'receipt' && r.sourceInvoiceId === d.id
-        );
-        if (!hasLinkedReceipt) {
-          const invoicePaid = d.status === 'PAID' ? total : (d.advanceReceived || 0);
-          received += invoicePaid;
-        }
-        pending += d.status === 'PAID' ? 0 : (d.balanceDue || 0);
-      } else if (d.type === 'receipt') {
-        const amount = d.amountReceived || d.advanceReceived || 0;
-        const isLinked = Boolean(d.sourceInvoiceId && clientDocs.some((inv) => inv.id === d.sourceInvoiceId));
-        if (!isLinked) {
-          billed += d.totalProjectCost || amount;
-        }
-        received += amount;
-      }
+      const fin = calculateDocumentFinancials(d, clientDocs);
+      billed += fin.billed;
+      received += fin.received;
+      pending += fin.pending;
     });
 
     return { billed, received, pending };
@@ -332,7 +318,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
 
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-xs text-white">
-                            {formatINR(doc.type === 'receipt' ? (doc.amountReceived ?? doc.advanceReceived) : doc.balanceDue)}
+                            {formatINR(getDocumentDisplayAmount(doc))}
                           </span>
                           <ArrowRight size={14} className="text-neutral-500" />
                         </div>

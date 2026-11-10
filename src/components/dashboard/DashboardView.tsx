@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { BillingDocument, DocumentStatus } from '../../types';
 import { formatINR } from '../../services/indianCurrency';
 import { formatDisplayDate } from '../../services/dateUtils';
+import { calculateDocumentFinancials, getDocumentDisplayAmount } from '../../services/financialCalculations';
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import {
   TrendingUp,
@@ -45,26 +46,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       try {
         const docDate = parseISO(d.date);
         if (isWithinInterval(docDate, { start: currentMonthStart, end: currentMonthEnd })) {
-          if (d.type === 'invoice') {
-            const invoiceTotal = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
-            billedThisMonth += invoiceTotal;
-            const hasLinkedReceipt = documents.some(
-              (r) => r.type === 'receipt' && r.sourceInvoiceId === d.id
-            );
-            if (!hasLinkedReceipt) {
-              const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
-              receivedThisMonth += invoicePaid;
-            }
-            pendingThisMonth += d.status === 'PAID' ? 0 : (d.balanceDue || 0);
-          } else if (d.type === 'receipt') {
-            const amount = d.amountReceived ?? d.advanceReceived ?? 0;
-            const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
-            if (!isLinked) {
-              billedThisMonth += d.totalProjectCost || amount;
-            }
-            // All receipts dated this month represent verified cash collections
-            receivedThisMonth += amount;
-          }
+          const fin = calculateDocumentFinancials(d, documents);
+          billedThisMonth += fin.billed;
+          receivedThisMonth += fin.received;
+          pendingThisMonth += fin.pending;
         }
       } catch {
         // Ignore date parse issues
@@ -95,24 +80,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         try {
           const docDate = parseISO(d.date);
           if (isWithinInterval(docDate, { start: mStart, end: mEnd })) {
-            if (d.type === 'invoice') {
-              const invoiceTotal = d.subtotal - d.discountAmount + (d.totalTaxAmount || 0);
-              billed += invoiceTotal;
-              const hasLinkedReceipt = documents.some(
-                (r) => r.type === 'receipt' && r.sourceInvoiceId === d.id
-              );
-              if (!hasLinkedReceipt) {
-                const invoicePaid = d.status === 'PAID' ? invoiceTotal : (d.advanceReceived || 0);
-                received += invoicePaid;
-              }
-            } else if (d.type === 'receipt') {
-              const amount = d.amountReceived ?? d.advanceReceived ?? 0;
-              const isLinked = Boolean(d.sourceInvoiceId && documents.some((inv) => inv.id === d.sourceInvoiceId));
-              if (!isLinked) {
-                billed += d.totalProjectCost || amount;
-              }
-              received += amount;
-            }
+            const fin = calculateDocumentFinancials(d, documents);
+            billed += fin.billed;
+            received += fin.received;
           }
         } catch {
           // ignore
@@ -349,9 +319,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex items-center gap-4">
                 <span className="text-xs text-neutral-400">{formatDisplayDate(doc.date)}</span>
                 <span className="text-xs font-bold text-white">
-                  {formatINR(
-                    doc.type === 'receipt' ? (doc.amountReceived ?? doc.advanceReceived) : doc.balanceDue
-                  )}
+                  {formatINR(getDocumentDisplayAmount(doc))}
                 </span>
                 <span
                   className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded border ${

@@ -1,6 +1,7 @@
 import { BillingDocument, BusinessProfile, Client } from '../types';
 import { DEFAULT_BUSINESS_PROFILE, SEED_RECEIPT, SEED_INVOICE, SEED_CLIENTS } from './seedData';
 import { isAfter, parseISO } from 'date-fns';
+import { GoogleDriveSyncService } from './googleDriveSync';
 
 const STORAGE_KEYS = {
   PROFILE: 'devrian_business_profile_v4',
@@ -18,11 +19,73 @@ export interface AppBackupData {
   clients: Client[];
 }
 
+let persistTimeout: any = null;
+
 export const StorageService = {
+  /**
+   * Automatically persists the current database to both:
+   * 1. Local Hard Drive via Vite API (/api/storage -> d:\Personal\INVOICE GEN\data\devrian_database.json)
+   * 2. Google Drive Cloud (if configured)
+   * Debounced by 300ms so rapid typing doesn't overload.
+   */
+  persistToDiskAndCloud(): void {
+    if (typeof window === 'undefined') return;
+    if (persistTimeout) clearTimeout(persistTimeout);
+
+    persistTimeout = setTimeout(async () => {
+      try {
+        const fullBackup = this.exportFullBackup(true);
+
+        // 1. Local Hard Drive Persistence (Vite middleware)
+        try {
+          fetch('/api/storage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(fullBackup),
+          }).catch((err) => console.warn('[Storage] Local disk write error:', err));
+        } catch {
+          // ignore network fetch issues
+        }
+
+        // 2. Google Drive Cloud Auto-Sync
+        try {
+          const driveConfig = GoogleDriveSyncService.getConfig();
+          if (driveConfig.url && driveConfig.autoSync) {
+            GoogleDriveSyncService.syncDatabase(fullBackup).catch((err) =>
+              console.warn('[Storage] Background Google Drive sync error:', err)
+            );
+          }
+        } catch {
+          // ignore
+        }
+      } catch (e) {
+        console.warn('[Storage] Failed to run persistToDiskAndCloud:', e);
+      }
+    }, 300);
+  },
+
   // --- Profile ---
   getProfile(): BusinessProfile {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
+      let data = localStorage.getItem(STORAGE_KEYS.PROFILE);
+      // Fallback check older versions if v4 is missing
+      if (!data) {
+        const legacyKeys = [
+          'devrian_business_profile_v3',
+          'devrian_business_profile_v2',
+          'devrian_business_profile_v1',
+          'devrian_business_profile',
+        ];
+        for (const k of legacyKeys) {
+          const legacyData = localStorage.getItem(k);
+          if (legacyData) {
+            data = legacyData;
+            localStorage.setItem(STORAGE_KEYS.PROFILE, legacyData);
+            break;
+          }
+        }
+      }
+
       if (data) {
         const parsed = JSON.parse(data);
         return {
@@ -43,6 +106,7 @@ export const StorageService = {
   saveProfile(profile: BusinessProfile): void {
     try {
       localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
+      this.persistToDiskAndCloud();
     } catch (e) {
       console.error('Failed to save profile', e);
     }
@@ -51,7 +115,26 @@ export const StorageService = {
   // --- Documents ---
   getDocuments(): BillingDocument[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+      let data = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+      // Fallback check older versions if v4 is missing
+      if (!data) {
+        const legacyKeys = [
+          'devrian_documents_v3',
+          'devrian_documents_v2',
+          'devrian_documents_v1',
+          'devrian_documents',
+          'devrian_billing_documents',
+        ];
+        for (const k of legacyKeys) {
+          const legacyData = localStorage.getItem(k);
+          if (legacyData) {
+            data = legacyData;
+            localStorage.setItem(STORAGE_KEYS.DOCUMENTS, legacyData);
+            break;
+          }
+        }
+      }
+
       if (!data) {
         const initialDocs = [SEED_RECEIPT, SEED_INVOICE];
         this.saveDocuments(initialDocs);
@@ -87,6 +170,7 @@ export const StorageService = {
   saveDocuments(docs: BillingDocument[]): void {
     try {
       localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(docs));
+      this.persistToDiskAndCloud();
     } catch (e) {
       console.error('Failed to save documents', e);
     }
@@ -125,7 +209,25 @@ export const StorageService = {
   // --- Clients ---
   getClients(): Client[] {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.CLIENTS);
+      let data = localStorage.getItem(STORAGE_KEYS.CLIENTS);
+      // Fallback check older versions if v4 is missing
+      if (!data) {
+        const legacyKeys = [
+          'devrian_clients_v3',
+          'devrian_clients_v2',
+          'devrian_clients_v1',
+          'devrian_clients',
+        ];
+        for (const k of legacyKeys) {
+          const legacyData = localStorage.getItem(k);
+          if (legacyData) {
+            data = legacyData;
+            localStorage.setItem(STORAGE_KEYS.CLIENTS, legacyData);
+            break;
+          }
+        }
+      }
+
       if (!data) {
         this.saveClients(SEED_CLIENTS);
         return SEED_CLIENTS;
@@ -140,6 +242,7 @@ export const StorageService = {
   saveClients(clients: Client[]): void {
     try {
       localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(clients));
+      this.persistToDiskAndCloud();
     } catch (e) {
       console.error('Failed to save clients', e);
     }
@@ -260,6 +363,7 @@ export const StorageService = {
         this.saveClients(backupData.clients);
       }
       this.setLastBackupDate(new Date().toISOString());
+      this.persistToDiskAndCloud();
       return true;
     } catch (e) {
       console.error('Failed to restore backup', e);

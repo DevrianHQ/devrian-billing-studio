@@ -37,3 +37,6 @@ stream12.txt
 qa-screenshots/downloads/
 qa-screenshots/policies/audit/
 qa-screenshots/policies/enhanced/
+
+# Local User Database & Backups (Private)
+data/

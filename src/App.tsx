@@ -8,6 +8,7 @@ import {
   DocumentCustomText,
 } from './types';
 import { StorageService, AppBackupData } from './services/storage';
+import { GoogleDriveSyncService } from './services/googleDriveSync';
 import { generateNextDocumentNumber } from './services/numbering';
 import { getTodayISODate, calculateDueDate } from './services/dateUtils';
 import {
@@ -72,15 +73,70 @@ export const App: React.FC = () => {
   const [documents, setDocuments] = useState<BillingDocument[]>(() => StorageService.getDocuments());
   const [clients, setClients] = useState<Client[]>(() => StorageService.getClients());
 
+  // Startup Auto-Hydration: Load permanent database from local hard disk (D: drive) or Google Drive
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydratePersistentData() {
+      // 1. Try loading from local hard disk API (/api/storage)
+      try {
+        const diskRes = await fetch('/api/storage');
+        if (diskRes.ok) {
+          const diskData = await diskRes.json();
+          if (mounted && diskData && (diskData.businessProfile || diskData.documents || diskData.clients)) {
+            console.log('[Devrian Storage] Loaded permanent database from local hard disk.');
+            if (diskData.businessProfile) {
+              setProfile(diskData.businessProfile);
+              localStorage.setItem('devrian_business_profile_v4', JSON.stringify(diskData.businessProfile));
+            }
+            if (diskData.documents && diskData.documents.length > 0) {
+              setDocuments(diskData.documents);
+              localStorage.setItem('devrian_documents_v4', JSON.stringify(diskData.documents));
+            }
+            if (diskData.clients && diskData.clients.length > 0) {
+              setClients(diskData.clients);
+              localStorage.setItem('devrian_clients_v4', JSON.stringify(diskData.clients));
+            }
+            return;
+          }
+        }
+      } catch {
+        // Disk API not reachable or static
+      }
+
+      // 2. If disk had nothing yet, check if Google Drive has a backup
+      try {
+        const driveConfig = GoogleDriveSyncService.getConfig();
+        if (driveConfig.url) {
+          const cloudRes = await GoogleDriveSyncService.fetchDatabase();
+          if (mounted && cloudRes.success && cloudRes.data) {
+            console.log('[Devrian Storage] Restored database from Google Drive cloud.');
+            StorageService.importFullBackup(cloudRes.data);
+            if (cloudRes.data.businessProfile) setProfile(cloudRes.data.businessProfile);
+            if (cloudRes.data.documents) setDocuments(cloudRes.data.documents);
+            if (cloudRes.data.clients) setClients(cloudRes.data.clients);
+          }
+        }
+      } catch {
+        // Ignore cloud fetch errors
+      }
+    }
+
+    hydratePersistentData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Multi-tab synchronization: keep documents, clients, and profile in sync across browser tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (!e.key) return;
-      if (e.key === 'devrian_documents_v1') {
+      if (e.key === 'devrian_documents_v4' || e.key === 'devrian_documents_v1') {
         setDocuments(StorageService.getDocuments());
-      } else if (e.key === 'devrian_clients_v1') {
+      } else if (e.key === 'devrian_clients_v4' || e.key === 'devrian_clients_v1') {
         setClients(StorageService.getClients());
-      } else if (e.key === 'devrian_business_profile_v1') {
+      } else if (e.key === 'devrian_business_profile_v4' || e.key === 'devrian_business_profile_v1') {
         setProfile(StorageService.getProfile());
       }
     };
