@@ -3,7 +3,7 @@ import { BillingDocument, DocumentStatus } from '../../types';
 import { formatINR } from '../../services/indianCurrency';
 import { formatDisplayDate } from '../../services/dateUtils';
 import { calculateDocumentFinancials, getDocumentDisplayAmount } from '../../services/financialCalculations';
-import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO, isAfter } from 'date-fns';
 import {
   TrendingUp,
   CreditCard,
@@ -11,6 +11,8 @@ import {
   AlertTriangle,
   ArrowUpRight,
   FileText,
+  FileCheck,
+  CheckCircle2,
   Users,
 } from 'lucide-react';
 
@@ -61,6 +63,72 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       receivedThisMonth,
       pendingThisMonth,
       overdueCount,
+    };
+  }, [documents, currentMonthStart, currentMonthEnd]);
+
+  // Quotation pipeline stats
+  const quotationStats = useMemo(() => {
+    let sentThisMonth = 0;
+    let sentAllTime = 0;
+    let acceptedThisMonth = 0;
+    let acceptedAllTime = 0;
+    let pipelineValue = 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    documents.forEach((d) => {
+      if (d.type !== 'quotation') return;
+
+      const isSent = d.status === 'SENT' || d.status === 'ACCEPTED' || d.status === 'REJECTED' || d.status === 'EXPIRED';
+      const isAccepted = d.status === 'ACCEPTED';
+      const docAmount = d.subtotal - (d.discountAmount || 0) + (d.totalTaxAmount || 0);
+
+      let inMonth = false;
+      try {
+        const docDate = parseISO(d.date);
+        inMonth = isWithinInterval(docDate, { start: currentMonthStart, end: currentMonthEnd });
+      } catch {
+        // ignore
+      }
+
+      if (isSent) {
+        sentAllTime++;
+        if (inMonth) sentThisMonth++;
+      }
+      if (isAccepted) {
+        acceptedAllTime++;
+        if (inMonth) acceptedThisMonth++;
+      }
+
+      // Pipeline value: sum of SENT, non-expired
+      if (d.status === 'SENT') {
+        let isExpired = false;
+        if (d.validTill) {
+          try {
+            const vDate = parseISO(d.validTill);
+            if (isAfter(today, vDate)) isExpired = true;
+          } catch {
+            // ignore
+          }
+        }
+        if (!isExpired) {
+          pipelineValue += docAmount;
+        }
+      }
+    });
+
+    const convRateThisMonth = sentThisMonth > 0 ? Math.round((acceptedThisMonth / sentThisMonth) * 100) : 0;
+    const convRateAllTime = sentAllTime > 0 ? Math.round((acceptedAllTime / sentAllTime) * 100) : 0;
+
+    return {
+      sentThisMonth,
+      sentAllTime,
+      acceptedThisMonth,
+      acceptedAllTime,
+      convRateThisMonth,
+      convRateAllTime,
+      pipelineValue,
     };
   }, [documents, currentMonthStart, currentMonthEnd]);
 
@@ -194,6 +262,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {monthlyStats.overdueCount}
           </div>
           <p className="text-[10px] text-neutral-500">Requires follow-up</p>
+        </div>
+      </div>
+
+      {/* Quotation Pipeline & Conversion Stats */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-neutral-400">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-300">
+            Quotation Pipeline & Performance
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 1. Quotations Sent */}
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-neutral-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Quotations Sent</span>
+              <FileCheck size={15} className="text-sky-400" />
+            </div>
+            <div className="text-2xl font-bold text-white tracking-tight">
+              {quotationStats.sentThisMonth}
+              <span className="text-xs font-normal text-neutral-400 ml-2">/ {quotationStats.sentAllTime} all time</span>
+            </div>
+            <p className="text-[10px] text-neutral-500">Sent to prospective clients</p>
+          </div>
+
+          {/* 2. Accepted */}
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-neutral-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Accepted</span>
+              <CheckCircle2 size={15} className="text-emerald-400" />
+            </div>
+            <div className="text-2xl font-bold text-emerald-400 tracking-tight">
+              {quotationStats.acceptedThisMonth}
+              <span className="text-xs font-normal text-neutral-400 ml-2">/ {quotationStats.acceptedAllTime} all time</span>
+            </div>
+            <p className="text-[10px] text-neutral-500">Client approvals</p>
+          </div>
+
+          {/* 3. Conversion Rate */}
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-neutral-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Conversion Rate</span>
+              <TrendingUp size={15} className="text-white" />
+            </div>
+            <div className="text-2xl font-bold text-white tracking-tight">
+              {quotationStats.convRateThisMonth}%
+              <span className="text-xs font-normal text-neutral-400 ml-2">({quotationStats.convRateAllTime}% all time)</span>
+            </div>
+            <p className="text-[10px] text-neutral-500">Accepted divided by sent</p>
+          </div>
+
+          {/* 4. Pipeline Value */}
+          <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-neutral-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider">Pipeline Value</span>
+              <CreditCard size={15} className="text-amber-400" />
+            </div>
+            <div className="text-2xl font-bold text-amber-400 tracking-tight">
+              {formatINR(quotationStats.pipelineValue)}
+            </div>
+            <p className="text-[10px] text-neutral-500">Active sent, non-expired quotations</p>
+          </div>
         </div>
       </div>
 

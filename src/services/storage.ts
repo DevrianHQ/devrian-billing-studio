@@ -147,6 +147,7 @@ export const StorageService = {
       let updated = false;
 
       const checkedDocs = docs.map((doc) => {
+        // Auto-update overdue status for invoices that are unpaid or partially paid
         if (doc.type === 'invoice' && (doc.status === 'UNPAID' || doc.status === 'PARTIALLY PAID') && doc.dueDate) {
           const due = parseISO(doc.dueDate);
           if (isAfter(today, due)) {
@@ -154,6 +155,32 @@ export const StorageService = {
             return { ...doc, status: 'OVERDUE' as const };
           }
         }
+
+        // Auto-expire quotations whose validTill date has passed when status is SENT
+        if (doc.type === 'quotation' && doc.status === 'SENT' && doc.validTill) {
+          try {
+            const validDate = parseISO(doc.validTill);
+            if (isAfter(today, validDate)) {
+              updated = true;
+              const log = doc.statusLog || [];
+              return {
+                ...doc,
+                status: 'EXPIRED' as const,
+                statusLog: [
+                  ...log,
+                  {
+                    status: 'EXPIRED' as const,
+                    timestamp: new Date().toISOString(),
+                    note: 'Automatically marked expired based on validity date',
+                  },
+                ],
+              };
+            }
+          } catch {
+            // ignore date parsing errors
+          }
+        }
+
         return doc;
       });
 
@@ -342,7 +369,7 @@ export const StorageService = {
     };
 
     const backup: AppBackupData = {
-      version: '2.0.0',
+      version: '3.0.0',
       exportedAt: new Date().toISOString(),
       businessProfile: exportedProfile,
       documents: this.getDocuments(),
@@ -357,8 +384,41 @@ export const StorageService = {
       if (!backupData || !backupData.documents || !backupData.businessProfile) {
         throw new Error('Invalid backup file format');
       }
-      this.saveProfile(backupData.businessProfile);
-      this.saveDocuments(backupData.documents);
+
+      // Safe migration for older backup versions (v1.0.0, v2.0.0)
+      const migratedProfile: BusinessProfile = {
+        ...DEFAULT_BUSINESS_PROFILE,
+        ...backupData.businessProfile,
+        quotationPattern: backupData.businessProfile.quotationPattern || 'DEV-QT-{YYYY}-{001}',
+        quotationTermsTemplate:
+          backupData.businessProfile.quotationTermsTemplate &&
+          backupData.businessProfile.quotationTermsTemplate.length > 0
+            ? backupData.businessProfile.quotationTermsTemplate
+            : DEFAULT_BUSINESS_PROFILE.quotationTermsTemplate,
+        quotationValidityDays: backupData.businessProfile.quotationValidityDays || 15,
+        advancePercentDefault: backupData.businessProfile.advancePercentDefault || 50,
+        balanceDueHoursDefault: backupData.businessProfile.balanceDueHoursDefault || 48,
+      };
+
+      const migratedDocs: BillingDocument[] = backupData.documents.map((d) => {
+        if (d.type === 'quotation') {
+          return {
+            ...d,
+            sectionVisibility: {
+              ...DEFAULT_BUSINESS_PROFILE.defaultCustomText?.quotation,
+              ...d.sectionVisibility,
+              showInclusions: d.sectionVisibility.showInclusions ?? true,
+              showTimeline: d.sectionVisibility.showTimeline ?? true,
+              showAcceptance: d.sectionVisibility.showAcceptance ?? true,
+              showClientSignature: d.sectionVisibility.showClientSignature ?? true,
+            },
+          };
+        }
+        return d;
+      });
+
+      this.saveProfile(migratedProfile);
+      this.saveDocuments(migratedDocs);
       if (backupData.clients) {
         this.saveClients(backupData.clients);
       }

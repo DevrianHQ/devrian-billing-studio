@@ -10,12 +10,13 @@ import {
 import { StorageService, AppBackupData } from './services/storage';
 import { GoogleDriveSyncService } from './services/googleDriveSync';
 import { generateNextDocumentNumber } from './services/numbering';
-import { getTodayISODate, calculateDueDate } from './services/dateUtils';
+import { getTodayISODate, calculateDueDate, calculateValidTillDate, formatDisplayDate } from './services/dateUtils';
 import {
   DEFAULT_INVOICE_TEXT,
   DEFAULT_RECEIPT_TEXT,
   DEFAULT_QUOTATION_TEXT,
   DEFAULT_VISIBILITY,
+  getDefaultQuotationTerms,
 } from './services/seedData';
 import { Navbar, AppPage } from './components/common/Navbar';
 import { DocumentEditor } from './components/editor/DocumentEditor';
@@ -149,7 +150,7 @@ export const App: React.FC = () => {
     (type: DocumentType, baseData?: Partial<BillingDocument>): BillingDocument => {
       let pattern = profile.invoicePattern;
       if (type === 'receipt') pattern = profile.receiptPattern;
-      if (type === 'quotation') pattern = profile.quotationPattern;
+      if (type === 'quotation') pattern = profile.quotationPattern || 'DEV-QT-{YYYY}-{001}';
 
       const docNumber = generateNextDocumentNumber(type, pattern, documents);
       const today = getTodayISODate();
@@ -217,14 +218,17 @@ export const App: React.FC = () => {
               },
             ];
 
+      const advPercent = profile.advancePercentDefault ?? 50;
+      const initialAdvanceToStart = Math.round((initialSubtotal * advPercent) / 100);
+
       const newDoc: BillingDocument = {
         id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         type,
         documentNumber: docNumber,
         date: today,
         dueDate: type === 'invoice' ? calculateDueDate(today, 'Net 7') : undefined,
-        validTill: type === 'quotation' ? calculateDueDate(today, 'Net 7') : undefined,
-        status: type === 'receipt' ? 'PAID' : 'UNPAID',
+        validTill: type === 'quotation' ? calculateValidTillDate(today, profile.quotationValidityDays || 15) : undefined,
+        status: type === 'receipt' ? 'PAID' : type === 'quotation' ? 'DRAFT' : 'UNPAID',
         isFinal: false,
         applySignature: false,
         customText: { ...defText },
@@ -247,8 +251,15 @@ export const App: React.FC = () => {
         gstType: 'CGST_SGST',
         advanceReceived: type === 'receipt' ? initialSubtotal : 0,
         totalProjectCost: type === 'receipt' ? initialSubtotal * 2 : undefined,
-        balanceDue: initialSubtotal,
+        balanceDue: type === 'quotation' ? Math.max(0, initialSubtotal - initialAdvanceToStart) : initialSubtotal,
         amountReceived: type === 'receipt' ? initialSubtotal : undefined,
+        advancePercent: type === 'quotation' ? advPercent : undefined,
+        advanceType: type === 'quotation' ? 'percentage' : undefined,
+        advanceToStartWork: type === 'quotation' ? initialAdvanceToStart : undefined,
+        balancePayable: type === 'quotation' ? Math.max(0, initialSubtotal - initialAdvanceToStart) : undefined,
+        inclusions: type === 'quotation' ? (profile.defaultInclusions || '[e.g. editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.]') : undefined,
+        exclusions: type === 'quotation' ? (profile.defaultExclusions || '[e.g. shooting, voice-over, stock licences, ad spend, extra revisions.]') : undefined,
+        deliveryTimeline: type === 'quotation' ? (profile.defaultDeliveryTimeline || 'First draft within [X] working days and final delivery within [Y] working days after the advance and all required materials are received.') : undefined,
         paymentDetails: {
           dateTime: type === 'receipt' ? '05 Nov 2026, 01:39 PM' : undefined,
           mode: 'UPI (PhonePe)',
@@ -262,9 +273,25 @@ export const App: React.FC = () => {
             ? [...profile.invoiceTermsTemplate]
             : type === 'receipt'
             ? [...profile.receiptTermsTemplate]
-            : [...profile.quotationTermsTemplate],
+            : (profile.quotationTermsTemplate && profile.quotationTermsTemplate.length > 0
+                ? [...profile.quotationTermsTemplate]
+                : getDefaultQuotationTerms(advPercent, profile.balanceDueHoursDefault || 48)),
         closingLine:
-          type === 'receipt' ? profile.receiptClosingTemplate : profile.invoiceClosingTemplate,
+          type === 'receipt'
+            ? profile.receiptClosingTemplate
+            : type === 'quotation'
+            ? (profile.quotationClosingTemplate || 'Thank you for considering DEVRIAN. We look forward to working with you.')
+            : profile.invoiceClosingTemplate,
+        statusLog:
+          type === 'quotation'
+            ? [
+                {
+                  status: 'DRAFT',
+                  timestamp: new Date().toISOString(),
+                  note: 'Quotation drafted',
+                },
+              ]
+            : undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         ...baseData,
@@ -378,10 +405,32 @@ export const App: React.FC = () => {
     (quotationDoc: BillingDocument) => {
       const today = getTodayISODate();
       const invoiceNum = generateNextDocumentNumber('invoice', profile.invoicePattern, documents);
+      const newInvoiceId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
+      const netTaxable = Math.max(0, quotationDoc.subtotal - (quotationDoc.discountAmount || 0));
+      const totalTax = quotationDoc.gstEnabled ? (quotationDoc.totalTaxAmount || 0) : 0;
+      const totalCost = netTaxable + totalTax;
+
+      // Mark Quotation as ACCEPTED if not already, and store link to converted invoice
+      const updatedQuotation: BillingDocument = {
+        ...quotationDoc,
+        status: 'ACCEPTED',
+        convertedInvoiceId: newInvoiceId,
+        statusLog: [
+          ...(quotationDoc.statusLog || []),
+          {
+            status: 'ACCEPTED',
+            timestamp: new Date().toISOString(),
+            note: `Converted to Invoice ${invoiceNum}`,
+          },
+        ],
+      };
+      handleSaveDocument(updatedQuotation);
+
+      // Create prefilled Invoice
       const invoiceDoc: BillingDocument = {
         ...quotationDoc,
-        id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        id: newInvoiceId,
         type: 'invoice',
         documentNumber: invoiceNum,
         date: today,
@@ -391,6 +440,9 @@ export const App: React.FC = () => {
         isFinal: false,
         applySignature: false,
         sourceQuotationId: quotationDoc.id,
+        advanceReceived: 0,
+        balanceDue: totalCost,
+        totalProjectCost: undefined,
         customText: {
           ...DEFAULT_INVOICE_TEXT,
           tagline: quotationDoc.customText.tagline || DEFAULT_INVOICE_TEXT.tagline,
@@ -399,12 +451,152 @@ export const App: React.FC = () => {
         },
         notes: [...profile.invoiceTermsTemplate],
         closingLine: profile.invoiceClosingTemplate,
+        statusLog: undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       handleSaveDocument(invoiceDoc);
       setActiveDoc(invoiceDoc);
+      handleNavigate('create');
+    },
+    [documents, profile, handleSaveDocument, handleNavigate]
+  );
+
+  // Revise Quotation (creates DEV-QT-2026-001-R1)
+  const handleReviseQuotation = useCallback(
+    (quotationDoc: BillingDocument) => {
+      const today = getTodayISODate();
+      let newDocNumber = quotationDoc.documentNumber;
+      const revisionMatch = quotationDoc.documentNumber.match(/-R(\d+)$/i);
+      if (revisionMatch) {
+        const nextRev = parseInt(revisionMatch[1], 10) + 1;
+        newDocNumber = quotationDoc.documentNumber.replace(/-R\d+$/i, `-R${nextRev}`);
+      } else {
+        newDocNumber = `${quotationDoc.documentNumber}-R1`;
+      }
+
+      const newRevId = `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+
+      // Mark original as superseded
+      const updatedOriginal: BillingDocument = {
+        ...quotationDoc,
+        supersededBy: newRevId,
+        statusLog: [
+          ...(quotationDoc.statusLog || []),
+          {
+            status: quotationDoc.status,
+            timestamp: new Date().toISOString(),
+            note: `Superseded by revision ${newDocNumber}`,
+          },
+        ],
+      };
+      handleSaveDocument(updatedOriginal);
+
+      // Create new revision document
+      const revisedDoc: BillingDocument = {
+        ...quotationDoc,
+        id: newRevId,
+        documentNumber: newDocNumber,
+        supersedesId: quotationDoc.id,
+        supersededBy: undefined,
+        convertedInvoiceId: undefined,
+        date: today,
+        validTill: calculateValidTillDate(today, profile.quotationValidityDays || 15),
+        status: 'DRAFT',
+        isFinal: false,
+        applySignature: false,
+        statusLog: [
+          {
+            status: 'DRAFT',
+            timestamp: new Date().toISOString(),
+            note: `Revision created from ${quotationDoc.documentNumber}`,
+          },
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      handleSaveDocument(revisedDoc);
+      setActiveDoc(revisedDoc);
+      handleNavigate('create');
+    },
+    [profile, handleSaveDocument, handleNavigate]
+  );
+
+  // Generate Advance Receipt from Quotation
+  const handleGenerateAdvanceReceipt = useCallback(
+    (quotationDoc: BillingDocument) => {
+      const today = getTodayISODate();
+      const receiptNum = generateNextDocumentNumber('receipt', profile.receiptPattern, documents);
+      const netTaxable = Math.max(0, quotationDoc.subtotal - (quotationDoc.discountAmount || 0));
+      const totalTax = quotationDoc.gstEnabled ? (quotationDoc.totalTaxAmount || 0) : 0;
+      const totalProjectCost = netTaxable + totalTax;
+
+      const advancePercent = quotationDoc.advancePercent ?? profile.advancePercentDefault ?? 50;
+      const advanceAmount =
+        quotationDoc.advanceToStartWork !== undefined && quotationDoc.advanceToStartWork > 0
+          ? quotationDoc.advanceToStartWork
+          : Math.round((totalProjectCost * advancePercent) / 100);
+
+      const balanceRemaining = Math.max(0, totalProjectCost - advanceAmount);
+
+      const receiptDoc: BillingDocument = {
+        ...quotationDoc,
+        id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        type: 'receipt',
+        documentNumber: receiptNum,
+        date: today,
+        dueDate: undefined,
+        validTill: undefined,
+        status: 'PAID',
+        isFinal: true,
+        applySignature: false,
+        sourceQuotationId: quotationDoc.id,
+        customText: {
+          ...DEFAULT_RECEIPT_TEXT,
+          eyebrow: 'ADVANCE PAYMENT',
+          tagline: quotationDoc.customText.tagline || DEFAULT_RECEIPT_TEXT.tagline,
+          contactLine: quotationDoc.customText.contactLine || DEFAULT_RECEIPT_TEXT.contactLine,
+          udyamLine: quotationDoc.customText.udyamLine || DEFAULT_RECEIPT_TEXT.udyamLine,
+        },
+        items: [
+          {
+            id: `item-${Date.now()}`,
+            description: `${advancePercent}% Advance Payment`,
+            subDescription: `${quotationDoc.projectName || 'Project'} (as per quotation ${quotationDoc.documentNumber})`,
+            qty: 1,
+            rate: advanceAmount,
+            amount: advanceAmount,
+            mode: 'UPI',
+          },
+        ],
+        subtotal: advanceAmount,
+        discountAmount: 0,
+        discountValue: 0,
+        totalProjectCost,
+        advanceReceived: advanceAmount,
+        amountReceived: advanceAmount,
+        balanceDue: balanceRemaining,
+        paymentRows: [
+          { id: 'p1', label: 'Date & Time', value: `${formatDisplayDate(today)}, 12:00 PM`, enabled: true },
+          { id: 'p2', label: 'Payment Mode', value: 'UPI', enabled: true },
+          { id: 'p3', label: 'Transaction ID', value: '', enabled: true },
+          { id: 'p4', label: 'UTR No.', value: '', enabled: true },
+        ],
+        notes: [
+          `GST is not applicable (not registered). The remaining ₹${balanceRemaining.toLocaleString('en-IN')} is payable within ${
+            profile.balanceDueHoursDefault || 48
+          } hours after project completion and approval, as per quotation ${quotationDoc.documentNumber}.`,
+        ],
+        closingLine: profile.receiptClosingTemplate,
+        statusLog: undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      handleSaveDocument(receiptDoc);
+      setActiveDoc(receiptDoc);
       handleNavigate('create');
     },
     [documents, profile, handleSaveDocument, handleNavigate]
@@ -613,6 +805,8 @@ export const App: React.FC = () => {
             onDuplicateDocument={handleDuplicateDocument}
             onConvertToInvoice={handleConvertToInvoice}
             onGenerateReceipt={handleGenerateReceipt}
+            onReviseQuotation={handleReviseQuotation}
+            onGenerateAdvanceReceipt={handleGenerateAdvanceReceipt}
             onUpdateBusinessSignature={handleUpdateBusinessSignature}
             onSaveAsDefaultText={handleSaveAsDefaultText}
             existingDocs={documents}
@@ -631,6 +825,8 @@ export const App: React.FC = () => {
               onDuplicateDocument={handleDuplicateDocument}
               onDeleteDocument={handleDeleteDocument}
               onUpdateStatus={handleUpdateStatus}
+              onConvertToInvoice={handleConvertToInvoice}
+              onReviseQuotation={handleReviseQuotation}
               onExportCSV={handleExportCSV}
             />
           </div>

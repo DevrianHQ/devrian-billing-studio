@@ -1,4 +1,4 @@
-import { format, parseISO, isValid, addDays } from 'date-fns';
+import { format, parseISO, isValid, addDays, differenceInDays } from 'date-fns';
 
 export function formatDisplayDate(dateInput: string | Date | undefined | null): string {
   if (!dateInput) return '';
@@ -43,4 +43,22 @@ export function calculateDueDate(baseDateStr: string, preset: string): string {
       return format(addDays(d, 7), 'yyyy-MM-dd');
   }
 }
+
+export function calculateValidTillDate(baseDateStr: string, days = 15): string {
+  const d = parseISO(baseDateStr);
+  if (!isValid(d)) return baseDateStr;
+  return format(addDays(d, days), 'yyyy-MM-dd');
+}
+
+export function getDaysDifference(startDateStr: string, endDateStr: string): number {
+  try {
+    const start = parseISO(startDateStr);
+    const end = parseISO(endDateStr);
+    if (!isValid(start) || !isValid(end)) return 0;
+    return differenceInDays(end, start);
+  } catch {
+    return 0;
+  }
+}
+
 

@@ -41,6 +41,11 @@ async function run() {
   await navigateTo('History');
   await page.screenshot({ path: path.join(BASELINE_DIR, 'history.png'), fullPage: true });
 
+  // 2b. Clients screenshot
+  console.log('Capturing Clients...');
+  await navigateTo('Clients');
+  await page.screenshot({ path: path.join(BASELINE_DIR, 'clients.png'), fullPage: true });
+
   // 3. Settings screenshot
   console.log('Capturing Settings...');
   await navigateTo('Settings');
@@ -95,7 +100,7 @@ async function run() {
   // 6. 25-Item Invoice (Multi-page)
   console.log('Generating & Capturing 25-Item Invoice...');
   await page.evaluate(() => {
-    const raw = localStorage.getItem('devrian_billing_draft_v1');
+    const raw = localStorage.getItem('devrian_active_draft_v4') || localStorage.getItem('devrian_billing_draft_v1');
     const doc = raw ? JSON.parse(raw) : {};
     doc.type = 'invoice';
     doc.items = Array.from({ length: 25 }, (_, i) => ({
@@ -108,6 +113,7 @@ async function run() {
     }));
     doc.subtotal = doc.items.reduce((s, it) => s + it.amount, 0);
     doc.balanceDue = doc.subtotal;
+    localStorage.setItem('devrian_active_draft_v4', JSON.stringify(doc));
     localStorage.setItem('devrian_billing_draft_v1', JSON.stringify(doc));
   });
 

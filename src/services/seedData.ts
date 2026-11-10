@@ -60,13 +60,57 @@ export const DEFAULT_RECEIPT_TEXT: DocumentCustomText = {
   signatureDisclaimer: 'Not valid for banking, cheque or legal-instrument purposes',
 };
 
+export const DEFAULT_INCLUSIONS = '[e.g. editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.]';
+export const DEFAULT_EXCLUSIONS = '[e.g. shooting, voice-over, stock licences, ad spend, extra revisions.]';
+export const DEFAULT_DELIVERY_TIMELINE = 'First draft within [X] working days and final delivery within [Y] working days after the advance and all required materials are received.';
+
+export const DEFAULT_QUOTATION_TERMS = [
+  'This quotation is valid until the date mentioned above. Prices may change after that.',
+  '50% advance is required to begin work. The balance is payable within 48 hours after project completion and approval.',
+  'Timelines start after the advance and all required materials (footage, scripts, logos and other assets) are received.',
+  'Revisions, delivery and refund terms are as per the signed proposal / DEVRIAN Terms & Conditions.',
+  'Raw files and source files are shared only after full payment, unless agreed otherwise.',
+  'Any work outside the scope above will be quoted separately.',
+];
+
+export const getDefaultQuotationTerms = (advancePercent: number = 50, balanceDueHours: number = 48): string[] => [
+  'This quotation is valid until the date mentioned above. Prices may change after that.',
+  `${advancePercent}% advance is required to begin work. The balance is payable within ${balanceDueHours} hours after project completion and approval.`,
+  'Timelines start after the advance and all required materials (footage, scripts, logos and other assets) are received.',
+  'Revisions, delivery and refund terms are as per the signed proposal / DEVRIAN Terms & Conditions.',
+  'Raw files and source files are shared only after full payment, unless agreed otherwise.',
+  'Any work outside the scope above will be quoted separately.',
+];
+
 export const DEFAULT_QUOTATION_TEXT: DocumentCustomText = {
-  ...DEFAULT_INVOICE_TEXT,
+  tagline: 'Building Attention, Authority & Growth for Modern Businesses',
+  contactLine: 'Devrian.official@gmail.com | inquiry@devrian.in | devrian.in',
+  udyamLine: 'Udyam Reg. No.: UDYAM-UP-54-0127731 | Proprietor: Dev Rajpoot',
   documentTitle: 'QUOTATION',
   eyebrow: 'QUOTATION',
-  clientSectionHeading: 'Quotation For',
-  labelKeyFigure: 'TOTAL ESTIMATE',
-  closingLine: 'Thank you for considering DEVRIAN. We look forward to partnering with you.',
+  clientSectionHeading: 'Prepared For',
+  itemsSectionHeading: 'Scope of Work',
+  summarySectionHeading: 'Summary',
+  paymentSectionHeading: 'Payment Details',
+  termsSectionHeading: 'Terms & Notes',
+  colNumber: '#',
+  colDescription: 'Description',
+  colQty: 'Qty',
+  colRate: 'Rate (₹)',
+  colAmount: 'Amount (₹)',
+  colMode: 'Mode',
+  labelSubtotal: 'Subtotal',
+  labelDiscount: 'Discount',
+  labelAdvanceReceived: 'Advance Received',
+  labelAdvanceToStart: 'Advance to Start Work',
+  labelBalanceDue: 'Balance Payable',
+  labelKeyFigure: 'TOTAL',
+  gstLine: 'GST: Not applicable (not registered under GST).',
+  closingLine: 'Thank you for considering DEVRIAN. We look forward to working with you.',
+  signatureProprietor: 'Dev Rajpoot',
+  signatureTitle: 'Founder, DEVRIAN',
+  signatureAuditLine: 'Issued by DEVRIAN',
+  signatureDisclaimer: 'Not valid for banking, cheque or legal-instrument purposes',
 };
 
 export const DEFAULT_VISIBILITY: DocumentSectionVisibility = {
@@ -81,6 +125,10 @@ export const DEFAULT_VISIBILITY: DocumentSectionVisibility = {
   showLegalDisclaimer: true,
   showAmountInWords: false,
   showUpiQr: false,
+  showInclusions: true,
+  showTimeline: true,
+  showAcceptance: true,
+  showClientSignature: true,
 };
 
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
@@ -123,7 +171,7 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   
   invoicePattern: 'DEV-{YYYY}-{001}',
   receiptPattern: 'DEV-REC-{001}',
-  quotationPattern: 'DEV-QT-{001}',
+  quotationPattern: 'DEV-QT-{YYYY}-{001}',
   
   itemPresets: [
     { title: 'Short-form video editing (reel)', defaultRate: 800 },
@@ -148,17 +196,20 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   ],
   receiptClosingTemplate: 'Thank you for your payment. Work will begin once the required materials (footage, scripts, logos and other assets) are received.',
   
-  quotationTermsTemplate: [
-    'This quotation is valid until the date mentioned above.',
-    '50% advance is required to begin work; the balance is payable within 48 hours after project completion and approval.',
-    'Revisions, delivery timelines and refund terms are as per the signed proposal / DEVRIAN Terms & Conditions.',
-    'Raw files and source files are shared only after full payment, unless agreed otherwise.'
-  ],
+  quotationTermsTemplate: DEFAULT_QUOTATION_TERMS,
   quotationClosingTemplate: 'Thank you for considering DEVRIAN. We look forward to working with you.',
+  
+  quotationValidityDays: 15,
+  advancePercentDefault: 50,
+  balanceDueHoursDefault: 48,
+  defaultInclusions: DEFAULT_INCLUSIONS,
+  defaultExclusions: DEFAULT_EXCLUSIONS,
+  defaultDeliveryTimeline: DEFAULT_DELIVERY_TIMELINE,
 
   defaultCustomText: {
     invoice: DEFAULT_INVOICE_TEXT,
     receipt: DEFAULT_RECEIPT_TEXT,
+    quotation: DEFAULT_QUOTATION_TEXT,
   }
 };
 
@@ -294,6 +345,94 @@ export const SEED_INVOICE: BillingDocument = {
   closingLine: 'Thank you for choosing DEVRIAN. We look forward to growing with you.',
   createdAt: '2026-11-08T10:00:00.000Z',
   updatedAt: '2026-11-08T10:00:00.000Z',
+};
+
+export const SEED_QUOTATION: BillingDocument = {
+  id: 'seed-qt-001',
+  type: 'quotation',
+  documentNumber: 'DEV-QT-2026-001',
+  date: '2026-11-10',
+  validTill: '2026-11-25',
+  status: 'DRAFT',
+  isFinal: false,
+  applySignature: false,
+  customText: {
+    ...DEFAULT_QUOTATION_TEXT,
+  },
+  sectionVisibility: {
+    ...DEFAULT_VISIBILITY,
+  },
+  paymentRows: [
+    {
+      id: 'p1',
+      label: 'UPI',
+      value: 'Devrian.official@gmail.com',
+      enabled: true,
+    },
+    {
+      id: 'p2',
+      label: 'Bank Transfer',
+      value: 'A/c Name: Dev Rajpoot (DEVRIAN) · Bank: HDFC Bank · A/c No.: 50100234567890 · IFSC: HDFC0001234',
+      enabled: true,
+    },
+  ],
+  clientId: 'seed-client-001',
+  clientName: 'Anshita Singh Parihar',
+  clientContactPerson: 'Anshita Singh',
+  clientAddress: 'Mathura, Uttar Pradesh - 281001',
+  clientPhone: '+91 98765 43210',
+  clientEmail: 'anshita@example.com',
+  projectName: 'FMCG Video Editing & Content Package',
+  items: [
+    {
+      id: 'seed-qt-item-1',
+      description: 'Short-form video editing (reel)',
+      subDescription: '15 vertical video edits with captions and sound design',
+      qty: 15,
+      rate: 800,
+      amount: 12000,
+    },
+    {
+      id: 'seed-qt-item-2',
+      description: 'Content strategy & calendar',
+      subDescription: 'Monthly topic research, script outlines & posting schedule',
+      qty: 1,
+      rate: 8000,
+      amount: 8000,
+    },
+  ],
+  subtotal: 20000,
+  discountType: 'percentage',
+  discountValue: 10,
+  discountAmount: 2000,
+  gstEnabled: false,
+  gstRate: 0,
+  gstType: 'CGST_SGST',
+  advancePercent: 50,
+  advanceType: 'percentage',
+  advanceReceived: 0,
+  advanceToStartWork: 9000,
+  balanceDue: 9000,
+  balancePayable: 9000,
+  inclusions: 'Editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.',
+  exclusions: 'Shooting, voice-over, stock licences, ad spend, extra revisions.',
+  deliveryTimeline: 'First draft within 4 working days and final delivery within 7 working days after the advance and all required materials are received.',
+  paymentDetails: {
+    showBankOnDoc: true,
+    showUpiOnDoc: true,
+    showQrOnDoc: false,
+  },
+  notes: [...DEFAULT_QUOTATION_TERMS],
+  closingLine: 'Thank you for considering DEVRIAN. We look forward to working with you.',
+  statusLog: [
+    {
+      status: 'DRAFT',
+      timestamp: '2026-11-10T10:00:00.000Z',
+      note: 'Initial quotation created',
+    },
+  ],
+  createdAt: '2026-11-10T10:00:00.000Z',
+  updatedAt: '2026-11-10T10:00:00.000Z',
 };
 
 export const SEED_CLIENTS: Client[] = [

@@ -48,15 +48,28 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
     let billed = 0;
     let received = 0;
     let pending = 0;
+    let totalQuoted = 0;
+    let acceptedQuoted = 0;
+    let pendingQuoted = 0;
 
     clientDocs.forEach((d) => {
-      const fin = calculateDocumentFinancials(d, clientDocs);
-      billed += fin.billed;
-      received += fin.received;
-      pending += fin.pending;
+      if (d.type === 'quotation') {
+        const val = d.subtotal - (d.discountAmount || 0) + (d.totalTaxAmount || 0);
+        totalQuoted += val;
+        if (d.status === 'ACCEPTED') {
+          acceptedQuoted += val;
+        } else if (d.status === 'DRAFT' || d.status === 'SENT') {
+          pendingQuoted += val;
+        }
+      } else {
+        const fin = calculateDocumentFinancials(d, clientDocs);
+        billed += fin.billed;
+        received += fin.received;
+        pending += fin.pending;
+      }
     });
 
-    return { billed, received, pending };
+    return { billed, received, pending, totalQuoted, acceptedQuoted, pendingQuoted };
   }, [clientDocs]);
 
   // Filter clients by search
@@ -281,6 +294,34 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Quotation Financial Summary */}
+                <div className="grid grid-cols-3 gap-3 pt-2 text-center">
+                  <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800">
+                    <div className="text-[10px] text-neutral-400 uppercase font-semibold">
+                      Total Quoted
+                    </div>
+                    <div className="text-sm font-bold text-white mt-0.5">
+                      {formatINR(stats.totalQuoted)}
+                    </div>
+                  </div>
+                  <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800">
+                    <div className="text-[10px] text-neutral-400 uppercase font-semibold">
+                      Accepted Value
+                    </div>
+                    <div className="text-sm font-bold text-emerald-400 mt-0.5">
+                      {formatINR(stats.acceptedQuoted)}
+                    </div>
+                  </div>
+                  <div className="bg-neutral-950 p-2.5 rounded-lg border border-neutral-800">
+                    <div className="text-[10px] text-neutral-400 uppercase font-semibold">
+                      Pending Quoted
+                    </div>
+                    <div className="text-sm font-bold text-amber-400 mt-0.5">
+                      {formatINR(stats.pendingQuoted)}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Client Documents History */}
@@ -296,34 +337,52 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                       No documents created for this client yet.
                     </div>
                   ) : (
-                    clientDocs.map((doc) => (
-                      <div
-                        key={doc.id}
-                        onClick={() => onSelectDocument(doc)}
-                        className="p-3 flex items-center justify-between hover:bg-neutral-800/40 cursor-pointer transition"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-xs text-white">
-                              {doc.documentNumber}
-                            </span>
-                            <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-300">
-                              {doc.type}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-neutral-400">
-                            {formatDisplayDate(doc.date)} {doc.projectName ? `· ${doc.projectName}` : ''}
-                          </div>
-                        </div>
+                    clientDocs.map((doc) => {
+                      const displayAmt =
+                        doc.type === 'quotation'
+                          ? doc.subtotal - (doc.discountAmount || 0) + (doc.totalTaxAmount || 0)
+                          : getDocumentDisplayAmount(doc);
 
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-xs text-white">
-                            {formatINR(getDocumentDisplayAmount(doc))}
-                          </span>
-                          <ArrowRight size={14} className="text-neutral-500" />
+                      return (
+                        <div
+                          key={doc.id}
+                          onClick={() => onSelectDocument(doc)}
+                          className="p-3 flex items-center justify-between hover:bg-neutral-800/40 cursor-pointer transition"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-xs text-white">
+                                {doc.documentNumber}
+                              </span>
+                              <span
+                                className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded border ${
+                                  doc.type === 'quotation'
+                                    ? 'bg-amber-950/40 text-amber-300 border-amber-800/50'
+                                    : doc.type === 'receipt'
+                                    ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/50'
+                                    : 'bg-neutral-800 text-neutral-300 border-neutral-700'
+                                }`}
+                              >
+                                {doc.type}
+                              </span>
+                              <span className="text-[10px] text-neutral-400 font-medium">
+                                ({doc.status})
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-neutral-400">
+                              {formatDisplayDate(doc.date)} {doc.projectName ? `· ${doc.projectName}` : ''}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-xs text-white">
+                              {formatINR(displayAmt)}
+                            </span>
+                            <ArrowRight size={14} className="text-neutral-500" />
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

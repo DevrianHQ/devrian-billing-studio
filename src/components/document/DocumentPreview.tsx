@@ -11,6 +11,7 @@ import { NoteBox } from './NoteBox';
 import { SignatureBlock } from './SignatureBlock';
 import { DocumentFooter } from './DocumentFooter';
 import { Watermark } from './Watermark';
+import { QuotationPreview } from './quotation/QuotationPreview';
 
 interface DocumentPreviewProps {
   document: BillingDocument;
@@ -31,6 +32,11 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   business,
   zoom = 1,
 }) => {
+  // If Quotation, delegate to dedicated QuotationPreview (guarantees zero regression on Invoice & Receipt)
+  if (doc.type === 'quotation') {
+    return <QuotationPreview document={doc} business={business} zoom={zoom} />;
+  }
+
   // Title handling (respects customText override or GST mode)
   const documentTitle = useMemo(() => {
     if (doc.customText?.documentTitle) {

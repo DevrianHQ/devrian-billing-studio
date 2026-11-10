@@ -6,7 +6,8 @@ import { exportElementsToPdf } from '../../services/pdfExport';
 import { StorageService } from '../../services/storage';
 import { GoogleDriveSyncService } from '../../services/googleDriveSync';
 import { generateNextDocumentNumber, isDocumentNumberDuplicate } from '../../services/numbering';
-import { getTodayISODate, calculateDueDate } from '../../services/dateUtils';
+import { getTodayISODate, calculateDueDate, calculateValidTillDate } from '../../services/dateUtils';
+import { DEFAULT_INVOICE_TEXT, DEFAULT_RECEIPT_TEXT, DEFAULT_QUOTATION_TEXT } from '../../services/seedData';
 import { SignatureStudioModal } from '../common/SignatureStudioModal';
 import {
   Save,
@@ -34,6 +35,8 @@ interface DocumentEditorProps {
   onDuplicateDocument: (doc: BillingDocument) => void;
   onConvertToInvoice: (quotationDoc: BillingDocument) => void;
   onGenerateReceipt: (invoiceDoc: BillingDocument) => void;
+  onReviseQuotation?: (quotationDoc: BillingDocument) => void;
+  onGenerateAdvanceReceipt?: (quotationDoc: BillingDocument) => void;
   onUpdateBusinessSignature: (signatureDataUrl: string) => void;
   onSaveAsDefaultText: (type: BillingDocument['type'], customText: DocumentCustomText) => void;
   existingDocs: BillingDocument[];
@@ -48,6 +51,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   onDuplicateDocument,
   onConvertToInvoice,
   onGenerateReceipt,
+  onReviseQuotation,
+  onGenerateAdvanceReceipt,
   onUpdateBusinessSignature,
   onSaveAsDefaultText,
   existingDocs,
@@ -132,6 +137,29 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       errors.push('Discount cannot be negative.');
     }
 
+    // Bracket placeholder validation for Quotations (blocks export until replaced or section hidden)
+    if (doc.type === 'quotation') {
+      const showInc = doc.sectionVisibility.showInclusions ?? true;
+      const showTime = doc.sectionVisibility.showTimeline ?? true;
+      const bracketRegex = /\[.+?\]/;
+
+      if (showInc && doc.inclusions && bracketRegex.test(doc.inclusions)) {
+        errors.push(
+          'Inclusions contain unfilled bracket placeholders (e.g. [...]). Please replace them or hide the section.'
+        );
+      }
+      if (showInc && doc.exclusions && bracketRegex.test(doc.exclusions)) {
+        errors.push(
+          'Exclusions contain unfilled bracket placeholders (e.g. [...]). Please replace them or hide the section.'
+        );
+      }
+      if (showTime && doc.deliveryTimeline && bracketRegex.test(doc.deliveryTimeline)) {
+        errors.push(
+          'Delivery timeline contains unfilled bracket placeholders (e.g. [X]). Please replace them or hide the section.'
+        );
+      }
+    }
+
     return errors;
   }, [doc, business, existingDocs]);
 
@@ -165,8 +193,24 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [doc, validationErrors, onSaveDocument]);
 
-  // Mark as Final handler
+  // Mark as Final handler (locks editing with unlock confirmation)
   const handleMarkAsFinal = useCallback(() => {
+    if (doc.isFinal) {
+      if (window.confirm('This document is currently locked as Final. Unlock for editing?')) {
+        const unlocked: BillingDocument = {
+          ...doc,
+          isFinal: false,
+          status: doc.type === 'quotation' ? 'DRAFT' : doc.type === 'receipt' ? 'PAID' : 'UNPAID',
+          applySignature: false,
+        };
+        setDoc(unlocked);
+        onSaveDocument(unlocked);
+        setSaveToast('Document unlocked for editing.');
+        setTimeout(() => setSaveToast(null), 2500);
+      }
+      return;
+    }
+
     if (!business.signatureDataUrl) {
       setIsSignatureModalOpen(true);
       return;
@@ -175,7 +219,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const updated: BillingDocument = {
       ...doc,
       isFinal: true,
-      status: doc.type === 'receipt' ? 'PAID' : 'FINAL',
+      status: doc.type === 'receipt' ? 'PAID' : doc.type === 'quotation' ? (doc.status === 'DRAFT' ? 'SENT' : doc.status) : 'FINAL',
       applySignature: true,
     };
     setDoc(updated);
@@ -210,7 +254,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         throw new Error('Could not find document preview pages to render.');
       }
 
-      const docTypeLabel = doc.type === 'receipt' ? 'Receipt' : 'Invoice';
+      const docTypeLabel = doc.type === 'receipt' ? 'Receipt' : doc.type === 'quotation' ? 'Quotation' : 'Invoice';
       const cleanClient = (doc.clientName || 'Client').replace(/[^a-zA-Z0-9_-]/g, '_');
       const cleanNumber = (doc.documentNumber || 'DOC').replace(/[^a-zA-Z0-9_-]/g, '_');
       const fileName = `DEVRIAN_${docTypeLabel}_${cleanNumber}_${cleanClient}.pdf`;
@@ -289,13 +333,16 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     const newDocNumber = generateNextDocumentNumber(newType, pattern, existingDocs);
     const today = getTodayISODate();
 
-    const defText = business.defaultCustomText?.[newType] || {
-      ...doc.customText,
-      documentTitle: newType === 'invoice' ? 'INVOICE' : newType === 'receipt' ? 'PAYMENT RECEIPT' : 'QUOTATION',
-      eyebrow: newType === 'receipt' ? 'ADVANCE PAYMENT' : newType.toUpperCase(),
-    };
+    const defText =
+      business.defaultCustomText?.[newType] ||
+      (newType === 'quotation'
+        ? DEFAULT_QUOTATION_TEXT
+        : newType === 'receipt'
+        ? DEFAULT_RECEIPT_TEXT
+        : DEFAULT_INVOICE_TEXT);
 
     const isSwitchingToReceipt = newType === 'receipt';
+    const isSwitchingToQuotation = newType === 'quotation';
     const totalProjectCost = doc.subtotal - (doc.discountAmount || 0) + (doc.totalTaxAmount || 0);
 
     const updated: BillingDocument = {
@@ -303,16 +350,21 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       // Assign fresh ID when switching types so original document is not overwritten
       id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       sourceInvoiceId: doc.type === 'invoice' ? doc.id : doc.sourceInvoiceId,
+      sourceQuotationId: doc.type === 'quotation' ? doc.id : doc.sourceQuotationId,
       type: newType,
       documentNumber: newDocNumber,
       date: today,
       dueDate: newType === 'invoice' ? calculateDueDate(today, 'Net 7') : undefined,
-      validTill: newType === 'quotation' ? calculateDueDate(today, 'Net 7') : undefined,
-      status: isSwitchingToReceipt ? 'PAID' : 'UNPAID',
+      validTill: newType === 'quotation' ? calculateValidTillDate(today, business.quotationValidityDays || 15) : undefined,
+      status: isSwitchingToReceipt ? 'PAID' : isSwitchingToQuotation ? 'DRAFT' : 'UNPAID',
       amountReceived: isSwitchingToReceipt
         ? (doc.advanceReceived > 0 ? doc.advanceReceived : totalProjectCost)
         : undefined,
       totalProjectCost: isSwitchingToReceipt ? totalProjectCost : undefined,
+      advancePercent: isSwitchingToQuotation ? (doc.advancePercent || business.advancePercentDefault || 50) : doc.advancePercent,
+      inclusions: isSwitchingToQuotation ? (doc.inclusions || business.defaultInclusions || '[e.g. editing, captions, music sync, colour grading, up to 2 revision rounds per deliverable.]') : doc.inclusions,
+      exclusions: isSwitchingToQuotation ? (doc.exclusions || business.defaultExclusions || '[e.g. shooting, voice-over, stock licences, ad spend, extra revisions.]') : doc.exclusions,
+      deliveryTimeline: isSwitchingToQuotation ? (doc.deliveryTimeline || business.defaultDeliveryTimeline || 'First draft within [X] working days and final delivery within [Y] working days after the advance and all required materials are received.') : doc.deliveryTimeline,
       customText: { ...defText },
       notes:
         newType === 'invoice'
@@ -323,6 +375,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       closingLine:
         newType === 'receipt'
           ? business.receiptClosingTemplate
+          : newType === 'quotation'
+          ? (business.quotationClosingTemplate || 'Thank you for considering DEVRIAN. We look forward to working with you.')
           : business.invoiceClosingTemplate,
     };
 
@@ -376,6 +430,18 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <Receipt size={13} />
               <span>Receipt</span>
             </button>
+            <button
+              type="button"
+              onClick={() => handleTypeChange('quotation')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition ${
+                doc.type === 'quotation'
+                  ? 'bg-white text-black shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              <FileCheck size={13} />
+              <span>Quotation</span>
+            </button>
           </div>
 
           {/* Quick conversions */}
@@ -389,6 +455,42 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <Receipt size={12} />
               <span>Generate Receipt</span>
             </button>
+          )}
+
+          {doc.type === 'quotation' && (
+            <div className="hidden xl:flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onConvertToInvoice(doc)}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-md border border-neutral-700 transition"
+                title="Convert this Quotation into an Invoice"
+              >
+                <FileText size={12} />
+                <span>Convert to Invoice</span>
+              </button>
+              {onReviseQuotation && (
+                <button
+                  type="button"
+                  onClick={() => onReviseQuotation(doc)}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-md border border-neutral-700 transition"
+                  title="Create a revision of this Quotation (e.g. -R1)"
+                >
+                  <Copy size={12} />
+                  <span>Revise</span>
+                </button>
+              )}
+              {onGenerateAdvanceReceipt && (
+                <button
+                  type="button"
+                  onClick={() => onGenerateAdvanceReceipt(doc)}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-neutral-300 hover:text-white bg-neutral-800 hover:bg-neutral-700 rounded-md border border-neutral-700 transition"
+                  title="Generate an Advance Payment Receipt from this Quotation"
+                >
+                  <Receipt size={12} />
+                  <span>Advance Receipt</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
 

@@ -10,7 +10,7 @@ import {
 } from '../../types';
 import { ClientSelector } from './ClientSelector';
 import { LineItemManager } from './LineItemManager';
-import { calculateDueDate } from '../../services/dateUtils';
+import { calculateDueDate, calculateValidTillDate, getDaysDifference } from '../../services/dateUtils';
 import {
   DEFAULT_INVOICE_TEXT,
   DEFAULT_RECEIPT_TEXT,
@@ -114,9 +114,27 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
 
     const totalWithTax = netTaxable + totalTaxAmount;
     const advance = draft.advanceReceived || 0;
-    const balanceDue = draft.type === 'receipt' && draft.totalProjectCost !== undefined && draft.totalProjectCost > 0
-      ? Math.max(0, draft.totalProjectCost - advance)
-      : Math.max(0, totalWithTax - advance);
+    let balanceDue = 0;
+
+    if (draft.type === 'receipt') {
+      balanceDue = draft.totalProjectCost !== undefined && draft.totalProjectCost > 0
+        ? Math.max(0, draft.totalProjectCost - advance)
+        : Math.max(0, totalWithTax - advance);
+      draft.amountReceived = advance;
+    } else if (draft.type === 'quotation') {
+      const advPercent = draft.advancePercent ?? 50;
+      let advAmount = 0;
+      if (draft.advanceType === 'flat') {
+        advAmount = draft.advanceToStartWork ?? Math.round((totalWithTax * advPercent) / 100);
+      } else {
+        advAmount = Math.round((totalWithTax * advPercent) / 100);
+      }
+      draft.advanceToStartWork = advAmount;
+      draft.balancePayable = Math.max(0, totalWithTax - advAmount);
+      balanceDue = draft.balancePayable;
+    } else {
+      balanceDue = Math.max(0, totalWithTax - advance);
+    }
 
     draft.subtotal = subtotal;
     draft.discountAmount = discountAmount;
@@ -125,10 +143,6 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
     draft.igstAmount = igstAmount;
     draft.totalTaxAmount = totalTaxAmount;
     draft.balanceDue = balanceDue;
-
-    if (draft.type === 'receipt') {
-      draft.amountReceived = advance;
-    }
 
     onChange({ ...draft });
   };
@@ -294,18 +308,48 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                 <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
                   Status
                 </label>
-                <select
-                  value={doc.status}
-                  onChange={(e) => updateField('status', e.target.value as DocumentStatus)}
-                  className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none font-semibold"
-                >
-                  <option value="PAID">PAID</option>
-                  <option value="UNPAID">UNPAID</option>
-                  <option value="PARTIALLY PAID">PARTIALLY PAID</option>
-                  <option value="ADVANCE RECEIVED">ADVANCE RECEIVED</option>
-                  <option value="OVERDUE">OVERDUE</option>
-                  <option value="FINAL">FINAL / ISSUED</option>
-                </select>
+                {isQuotation ? (
+                  <select
+                    value={doc.status}
+                    onChange={(e) => {
+                      const newStatus = e.target.value as DocumentStatus;
+                      const log = doc.statusLog || [];
+                      const updated = {
+                        ...doc,
+                        status: newStatus,
+                        statusLog: [
+                          ...log,
+                          {
+                            status: newStatus,
+                            timestamp: new Date().toISOString(),
+                            note: `Status updated to ${newStatus}`,
+                          },
+                        ],
+                      };
+                      onChange(updated);
+                    }}
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-amber-400"
+                  >
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="SENT">SENT</option>
+                    <option value="ACCEPTED">ACCEPTED</option>
+                    <option value="REJECTED">REJECTED</option>
+                    <option value="EXPIRED">EXPIRED</option>
+                  </select>
+                ) : (
+                  <select
+                    value={doc.status}
+                    onChange={(e) => updateField('status', e.target.value as DocumentStatus)}
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none font-semibold"
+                  >
+                    <option value="PAID">PAID</option>
+                    <option value="UNPAID">UNPAID</option>
+                    <option value="PARTIALLY PAID">PARTIALLY PAID</option>
+                    <option value="ADVANCE RECEIVED">ADVANCE RECEIVED</option>
+                    <option value="OVERDUE">OVERDUE</option>
+                    <option value="FINAL">FINAL / ISSUED</option>
+                  </select>
+                )}
               </div>
             </div>
 
@@ -322,6 +366,9 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                     const updated = { ...doc, date: newDate };
                     if (isInvoice && doc.paymentTermsPreset && doc.paymentTermsPreset !== 'Custom') {
                       updated.dueDate = calculateDueDate(newDate, doc.paymentTermsPreset);
+                    }
+                    if (isQuotation) {
+                      updated.validTill = calculateValidTillDate(newDate, business.quotationValidityDays || 15);
                     }
                     onChange(updated);
                   }}
@@ -345,15 +392,40 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
 
               {isQuotation && (
                 <div>
-                  <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
-                    Valid Till
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] text-neutral-400 font-semibold uppercase">
+                      Valid Till
+                    </label>
+                    {doc.validTill && (
+                      <span className="text-[9px] text-amber-400 font-medium">
+                        Valid for {Math.max(0, getDaysDifference(doc.date, doc.validTill))} days
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="date"
                     value={doc.validTill || ''}
                     onChange={(e) => updateField('validTill', e.target.value)}
                     className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none"
                   />
+                  <div className="flex gap-1.5 mt-1.5">
+                    {[7, 15, 30].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => {
+                          const updated = {
+                            ...doc,
+                            validTill: calculateValidTillDate(doc.date, days),
+                          };
+                          onChange(updated);
+                        }}
+                        className="px-2 py-0.5 text-[9px] bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded border border-neutral-700"
+                      >
+                        +{days} days
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -558,21 +630,90 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
-                      {isInvoice ? 'Advance Received (₹)' : 'Advance to Start Work (₹)'}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={doc.advanceReceived || ''}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const val = Math.max(0, parseFloat(e.target.value) || 0);
-                        const updated = { ...doc, advanceReceived: val, advanceToStartWork: val };
-                        recalculateFinancials(updated);
-                      }}
-                      className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold"
-                    />
+                    {isQuotation ? (
+                      <>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[10px] text-neutral-400 font-semibold uppercase">
+                            Advance to Start Work
+                          </label>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = { ...doc, advanceType: 'percentage' as const };
+                                recalculateFinancials(updated);
+                              }}
+                              className={`p-1 rounded text-[10px] ${
+                                doc.advanceType !== 'flat' ? 'bg-white text-black font-bold' : 'text-neutral-400'
+                              }`}
+                            >
+                              <Percent size={10} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = { ...doc, advanceType: 'flat' as const };
+                                recalculateFinancials(updated);
+                              }}
+                              className={`p-1 rounded text-[10px] ${
+                                doc.advanceType === 'flat' ? 'bg-white text-black font-bold' : 'text-neutral-400'
+                              }`}
+                            >
+                              <Hash size={10} />
+                            </button>
+                          </div>
+                        </div>
+                        {doc.advanceType === 'flat' ? (
+                          <input
+                            type="number"
+                            min="0"
+                            value={doc.advanceToStartWork || ''}
+                            placeholder="₹ Flat Advance"
+                            onChange={(e) => {
+                              const val = Math.max(0, parseFloat(e.target.value) || 0);
+                              const updated = { ...doc, advanceToStartWork: val, advanceReceived: val };
+                              recalculateFinancials(updated);
+                            }}
+                            className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-emerald-400"
+                          />
+                        ) : (
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={doc.advancePercent ?? 50}
+                              placeholder="50"
+                              onChange={(e) => {
+                                const val = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                                const updated = { ...doc, advancePercent: val };
+                                recalculateFinancials(updated);
+                              }}
+                              className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold text-emerald-400 pr-8"
+                            />
+                            <span className="absolute right-3 top-1.5 text-xs text-neutral-400 font-bold">%</span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                          Advance Received (₹)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={doc.advanceReceived || ''}
+                          placeholder="0"
+                          onChange={(e) => {
+                            const val = Math.max(0, parseFloat(e.target.value) || 0);
+                            const updated = { ...doc, advanceReceived: val, advanceToStartWork: val };
+                            recalculateFinancials(updated);
+                          }}
+                          className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none font-semibold"
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -582,7 +723,13 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
                     <div>
                       <span className="text-xs font-semibold text-neutral-200">GST Registration Mode</span>
                       <p className="text-[10px] text-neutral-400">
-                        {doc.gstEnabled ? 'Title is "TAX INVOICE"' : 'Title is "INVOICE" (GST not registered)'}
+                        {doc.gstEnabled
+                          ? isQuotation
+                            ? 'GST lines active (Title remains "QUOTATION")'
+                            : 'Title is "TAX INVOICE"'
+                          : isQuotation
+                          ? 'GST: Not applicable (not registered under GST)'
+                          : 'Title is "INVOICE" (GST not registered)'}
                       </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -649,6 +796,151 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
               </>
             )}
           </div>
+
+          {/* Quotation Specific Content Sections: Inclusions, Exclusions, Delivery Timeline, Acceptance */}
+          {isQuotation && (
+            <>
+              {/* Inclusions & Exclusions */}
+              <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
+                    Inclusions & Exclusions
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
+                    <span className="text-[10px] text-neutral-400">Visible</span>
+                    <input
+                      type="checkbox"
+                      checked={doc.sectionVisibility.showInclusions ?? true}
+                      onChange={(e) => updateVisibility('showInclusions', e.target.checked)}
+                      className="accent-white cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] text-neutral-400 font-semibold uppercase flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Included:</span>
+                      </label>
+                      {doc.inclusions && /\[.+?\]/.test(doc.inclusions) && (
+                        <span className="text-[9px] text-red-400 font-semibold flex items-center gap-1">
+                          <AlertCircle size={11} /> Unfilled placeholder [ ] blocks export
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={doc.inclusions || ''}
+                      onChange={(e) => updateField('inclusions', e.target.value)}
+                      placeholder="e.g. editing, captions, music sync, colour grading..."
+                      className={`w-full bg-neutral-950 text-white text-xs px-3 py-2 rounded outline-none border resize-none leading-relaxed ${
+                        doc.inclusions && /\[.+?\]/.test(doc.inclusions)
+                          ? 'border-red-500 ring-1 ring-red-500/50'
+                          : 'border-neutral-800 focus:border-white'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] text-neutral-400 font-semibold uppercase flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                        <span>Not Included:</span>
+                      </label>
+                      {doc.exclusions && /\[.+?\]/.test(doc.exclusions) && (
+                        <span className="text-[9px] text-red-400 font-semibold flex items-center gap-1">
+                          <AlertCircle size={11} /> Unfilled placeholder [ ] blocks export
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={doc.exclusions || ''}
+                      onChange={(e) => updateField('exclusions', e.target.value)}
+                      placeholder="e.g. shooting, voice-over, stock licences, extra revisions..."
+                      className={`w-full bg-neutral-950 text-white text-xs px-3 py-2 rounded outline-none border resize-none leading-relaxed ${
+                        doc.exclusions && /\[.+?\]/.test(doc.exclusions)
+                          ? 'border-red-500 ring-1 ring-red-500/50'
+                          : 'border-neutral-800 focus:border-white'
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Timeline */}
+              <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
+                    Delivery Timeline
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
+                    <span className="text-[10px] text-neutral-400">Visible</span>
+                    <input
+                      type="checkbox"
+                      checked={doc.sectionVisibility.showTimeline ?? true}
+                      onChange={(e) => updateVisibility('showTimeline', e.target.checked)}
+                      className="accent-white cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[9px] text-neutral-500 uppercase">Estimated Delivery Schedule</span>
+                    {doc.deliveryTimeline && /\[.+?\]/.test(doc.deliveryTimeline) && (
+                      <span className="text-[9px] text-red-400 font-semibold flex items-center gap-1">
+                        <AlertCircle size={11} /> Unfilled placeholder [ ] blocks export
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={doc.deliveryTimeline || ''}
+                    onChange={(e) => updateField('deliveryTimeline', e.target.value)}
+                    placeholder="First draft within [X] working days and final delivery within [Y] working days..."
+                    className={`w-full bg-neutral-950 text-white text-xs px-3 py-2 rounded outline-none border resize-none leading-relaxed ${
+                      doc.deliveryTimeline && /\[.+?\]/.test(doc.deliveryTimeline)
+                        ? 'border-red-500 ring-1 ring-red-500/50'
+                        : 'border-neutral-800 focus:border-white'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Acceptance Box Controls */}
+              <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[11px] font-bold tracking-wider uppercase text-neutral-300 block">
+                    Acceptance & Signatures
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-neutral-950 px-2 py-0.5 rounded border border-neutral-800">
+                    <span className="text-[10px] text-neutral-400">Show Acceptance Box</span>
+                    <input
+                      type="checkbox"
+                      checked={doc.sectionVisibility.showAcceptance ?? true}
+                      onChange={(e) => updateVisibility('showAcceptance', e.target.checked)}
+                      className="accent-white cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between text-xs">
+                  <span className="text-neutral-300">Include Client Signature Line</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={doc.sectionVisibility.showClientSignature ?? true}
+                      onChange={(e) => updateVisibility('showClientSignature', e.target.checked)}
+                      className="accent-white cursor-pointer"
+                    />
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Payment Details Rows (Add, edit, remove) */}
           <div className="p-4 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-3">
@@ -971,6 +1263,53 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
               </div>
             </div>
 
+            {/* Summary Row Labels */}
+            <div className="pt-2 border-t border-neutral-800 space-y-2">
+              <span className="text-[10px] font-bold uppercase text-neutral-400 block">Summary Row Labels</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">Subtotal Label</label>
+                  <input
+                    type="text"
+                    value={doc.customText.labelSubtotal || ''}
+                    onChange={(e) => updateCustomText('labelSubtotal', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2 py-1 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">Discount Label</label>
+                  <input
+                    type="text"
+                    value={doc.customText.labelDiscount || ''}
+                    onChange={(e) => updateCustomText('labelDiscount', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2 py-1 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">
+                    {isQuotation ? 'Advance to Start Label' : 'Advance Received Label'}
+                  </label>
+                  <input
+                    type="text"
+                    value={isQuotation ? (doc.customText.labelAdvanceToStart || 'Advance to Start Work') : (doc.customText.labelAdvanceReceived || 'Advance Received')}
+                    onChange={(e) => updateCustomText(isQuotation ? 'labelAdvanceToStart' : 'labelAdvanceReceived', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2 py-1 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">
+                    {isQuotation ? 'Balance Payable Label' : 'Balance Due Label'}
+                  </label>
+                  <input
+                    type="text"
+                    value={doc.customText.labelBalanceDue || ''}
+                    onChange={(e) => updateCustomText('labelBalanceDue', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2 py-1 rounded"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* GST line */}
             <div className="pt-2 border-t border-neutral-800">
               <label className="block text-[9px] text-neutral-500 uppercase">GST Disclaimer Line</label>
@@ -996,6 +1335,50 @@ export const DocumentForm: React.FC<DocumentFormProps> = ({
           </div>
 
           <div className="space-y-2.5 text-xs divide-y divide-neutral-800/80">
+            {isQuotation && (
+              <>
+                <label className="flex items-center justify-between pt-2 cursor-pointer">
+                  <span>Show Inclusions & Exclusions Box</span>
+                  <input
+                    type="checkbox"
+                    checked={doc.sectionVisibility.showInclusions ?? true}
+                    onChange={(e) => updateVisibility('showInclusions', e.target.checked)}
+                    className="accent-white"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between pt-2 cursor-pointer">
+                  <span>Show Delivery Timeline Box</span>
+                  <input
+                    type="checkbox"
+                    checked={doc.sectionVisibility.showTimeline ?? true}
+                    onChange={(e) => updateVisibility('showTimeline', e.target.checked)}
+                    className="accent-white"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between pt-2 cursor-pointer">
+                  <span>Show Acceptance Box</span>
+                  <input
+                    type="checkbox"
+                    checked={doc.sectionVisibility.showAcceptance ?? true}
+                    onChange={(e) => updateVisibility('showAcceptance', e.target.checked)}
+                    className="accent-white"
+                  />
+                </label>
+
+                <label className="flex items-center justify-between pt-2 cursor-pointer">
+                  <span>Show Client Signature Line in Acceptance Box</span>
+                  <input
+                    type="checkbox"
+                    checked={doc.sectionVisibility.showClientSignature ?? true}
+                    onChange={(e) => updateVisibility('showClientSignature', e.target.checked)}
+                    className="accent-white"
+                  />
+                </label>
+              </>
+            )}
+
             <label className="flex items-center justify-between pt-2 cursor-pointer">
               <span>Show Discount Row</span>
               <input

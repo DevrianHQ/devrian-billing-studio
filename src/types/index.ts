@@ -1,6 +1,17 @@
 export type DocumentType = 'invoice' | 'receipt' | 'quotation';
 
-export type DocumentStatus = 'PAID' | 'UNPAID' | 'PARTIALLY PAID' | 'ADVANCE RECEIVED' | 'OVERDUE' | 'FINAL';
+export type DocumentStatus =
+  | 'PAID'
+  | 'UNPAID'
+  | 'PARTIALLY PAID'
+  | 'ADVANCE RECEIVED'
+  | 'OVERDUE'
+  | 'FINAL'
+  | 'DRAFT'
+  | 'SENT'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'EXPIRED';
 
 export type EyebrowType = 'ADVANCE PAYMENT' | 'PART PAYMENT' | 'FINAL PAYMENT' | 'INVOICE' | 'QUOTATION' | 'CUSTOM';
 
@@ -97,6 +108,10 @@ export interface DocumentSectionVisibility {
   showLegalDisclaimer: boolean;
   showAmountInWords: boolean;
   showUpiQr: boolean;
+  showInclusions?: boolean;
+  showTimeline?: boolean;
+  showAcceptance?: boolean;
+  showClientSignature?: boolean;
 }
 
 export interface BusinessProfile {
@@ -156,6 +171,14 @@ export interface BusinessProfile {
   receiptClosingTemplate: string;
   invoiceClosingTemplate: string;
   quotationClosingTemplate?: string;
+  
+  // Quotation defaults
+  quotationValidityDays?: number; // default 15
+  advancePercentDefault?: number; // default 50
+  balanceDueHoursDefault?: number; // default 48
+  defaultInclusions?: string;
+  defaultExclusions?: string;
+  defaultDeliveryTimeline?: string;
   
   // Default custom text per doc type
   defaultCustomText?: {
@@ -217,6 +240,19 @@ export interface BillingDocument {
   balanceDue: number;
   amountReceived?: number;
   advanceToStartWork?: number;
+  advancePercent?: number; // default 50
+  advanceType?: 'percentage' | 'flat';
+  balancePayable?: number;
+  
+  // Quotation specific content
+  inclusions?: string;
+  exclusions?: string;
+  deliveryTimeline?: string;
+  statusLog?: { status: DocumentStatus; timestamp: string; note?: string }[];
+  supersedesId?: string;
+  supersededBy?: string;
+  convertedInvoiceId?: string;
+  revisionSuffix?: string;
   
   // Payment Details
   paymentDetails: {

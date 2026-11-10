@@ -25,6 +25,8 @@ interface HistoryViewProps {
   onDuplicateDocument: (doc: BillingDocument) => void;
   onDeleteDocument: (id: string) => void;
   onUpdateStatus: (id: string, newStatus: DocumentStatus) => void;
+  onConvertToInvoice?: (quotationDoc: BillingDocument) => void;
+  onReviseQuotation?: (quotationDoc: BillingDocument) => void;
   onExportCSV: () => void;
 }
 
@@ -35,6 +37,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   onDuplicateDocument,
   onDeleteDocument,
   onUpdateStatus,
+  onConvertToInvoice,
+  onReviseQuotation,
   onExportCSV,
 }) => {
   const [search, setSearch] = useState('');
@@ -42,6 +46,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | DocumentStatus>('all');
   const [monthFilter, setMonthFilter] = useState<string>('all');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [activeLogDoc, setActiveLogDoc] = useState<BillingDocument | null>(null);
 
   // Extract unique available months from documents
   const availableMonths = useMemo(() => {
@@ -129,6 +134,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <option value="all">All Document Types</option>
             <option value="invoice">Invoices</option>
             <option value="receipt">Payment Receipts</option>
+            <option value="quotation">Quotations</option>
           </select>
         </div>
 
@@ -145,6 +151,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             <option value="PARTIALLY PAID">PARTIALLY PAID</option>
             <option value="ADVANCE RECEIVED">ADVANCE RECEIVED</option>
             <option value="OVERDUE">OVERDUE</option>
+            <option value="DRAFT">DRAFT (Quotation)</option>
+            <option value="SENT">SENT (Quotation)</option>
+            <option value="ACCEPTED">ACCEPTED (Quotation)</option>
+            <option value="REJECTED">REJECTED (Quotation)</option>
+            <option value="EXPIRED">EXPIRED (Quotation)</option>
           </select>
         </div>
 
@@ -203,7 +214,28 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     >
                       {/* Document Number */}
                       <td className="py-3 px-4 font-bold text-white font-mono">
-                        {doc.documentNumber}
+                        <div>{doc.documentNumber}</div>
+                        {/* Cross-document Links */}
+                        {doc.type === 'invoice' && doc.sourceQuotationId && (
+                          <div className="text-[9px] text-sky-400 font-sans font-normal mt-0.5">
+                            Quotation {documents.find((d) => d.id === doc.sourceQuotationId)?.documentNumber || 'DEV-QT-...'} → Invoice {doc.documentNumber}
+                          </div>
+                        )}
+                        {doc.type === 'quotation' && doc.convertedInvoiceId && (
+                          <div className="text-[9px] text-emerald-400 font-sans font-normal mt-0.5">
+                            Quotation {doc.documentNumber} → Invoice {documents.find((d) => d.id === doc.convertedInvoiceId)?.documentNumber || 'DEV-...'}
+                          </div>
+                        )}
+                        {doc.supersedesId && (
+                          <div className="text-[9px] text-amber-400 font-sans font-normal mt-0.5">
+                            Revision of {documents.find((d) => d.id === doc.supersedesId)?.documentNumber || 'Original'}
+                          </div>
+                        )}
+                        {doc.supersededBy && (
+                          <div className="text-[9px] text-neutral-500 font-sans font-normal mt-0.5">
+                            Superseded by {documents.find((d) => d.id === doc.supersededBy)?.documentNumber || 'Revision'}
+                          </div>
+                        )}
                       </td>
 
                       {/* Type */}
@@ -222,6 +254,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                         {doc.dueDate && (
                           <div className="text-[10px] text-neutral-500">
                             Due: {formatDisplayDate(doc.dueDate)}
+                          </div>
+                        )}
+                        {doc.type === 'quotation' && doc.validTill && (
+                          <div className="text-[10px] text-amber-400/80">
+                            Valid: {formatDisplayDate(doc.validTill)}
                           </div>
                         )}
                       </td>
@@ -243,30 +280,92 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
                       {/* Status */}
                       <td className="py-3 px-3 text-center">
-                        <select
-                          value={doc.status}
-                          onChange={(e) => onUpdateStatus(doc.id, e.target.value as DocumentStatus)}
-                          className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded border uppercase cursor-pointer outline-none ${
-                            doc.status === 'PAID'
-                              ? 'border-emerald-600 bg-emerald-950/60 text-emerald-400'
-                              : doc.status === 'OVERDUE'
-                              ? 'border-red-600 bg-red-950/60 text-red-400'
-                              : doc.status === 'PARTIALLY PAID'
-                              ? 'border-amber-600 bg-amber-950/60 text-amber-400'
-                              : 'border-neutral-600 bg-neutral-900 text-neutral-300'
-                          }`}
-                        >
-                          <option value="PAID">PAID</option>
-                          <option value="UNPAID">UNPAID</option>
-                          <option value="PARTIALLY PAID">PARTIALLY PAID</option>
-                          <option value="ADVANCE RECEIVED">ADVANCE RECEIVED</option>
-                          <option value="OVERDUE">OVERDUE</option>
-                        </select>
+                        <div className="inline-flex items-center gap-1">
+                          {doc.type === 'quotation' ? (
+                            <select
+                              value={doc.status}
+                              onChange={(e) => onUpdateStatus(doc.id, e.target.value as DocumentStatus)}
+                              className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded border uppercase cursor-pointer outline-none ${
+                                doc.status === 'ACCEPTED'
+                                  ? 'border-emerald-600 bg-emerald-950/60 text-emerald-400'
+                                  : doc.status === 'REJECTED'
+                                  ? 'border-red-600 bg-red-950/60 text-red-400'
+                                  : doc.status === 'EXPIRED'
+                                  ? 'border-amber-600 bg-amber-950/60 text-amber-400'
+                                  : doc.status === 'SENT'
+                                  ? 'border-sky-600 bg-sky-950/60 text-sky-400'
+                                  : 'border-neutral-600 bg-neutral-900 text-neutral-300'
+                              }`}
+                            >
+                              <option value="DRAFT">DRAFT</option>
+                              <option value="SENT">SENT</option>
+                              <option value="ACCEPTED">ACCEPTED</option>
+                              <option value="REJECTED">REJECTED</option>
+                              <option value="EXPIRED">EXPIRED</option>
+                            </select>
+                          ) : (
+                            <select
+                              value={doc.status}
+                              onChange={(e) => onUpdateStatus(doc.id, e.target.value as DocumentStatus)}
+                              className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded border uppercase cursor-pointer outline-none ${
+                                doc.status === 'PAID'
+                                  ? 'border-emerald-600 bg-emerald-950/60 text-emerald-400'
+                                  : doc.status === 'OVERDUE'
+                                  ? 'border-red-600 bg-red-950/60 text-red-400'
+                                  : doc.status === 'PARTIALLY PAID'
+                                  ? 'border-amber-600 bg-amber-950/60 text-amber-400'
+                                  : 'border-neutral-600 bg-neutral-900 text-neutral-300'
+                              }`}
+                            >
+                              <option value="PAID">PAID</option>
+                              <option value="UNPAID">UNPAID</option>
+                              <option value="PARTIALLY PAID">PARTIALLY PAID</option>
+                              <option value="ADVANCE RECEIVED">ADVANCE RECEIVED</option>
+                              <option value="OVERDUE">OVERDUE</option>
+                            </select>
+                          )}
+
+                          {/* Status Log Trigger */}
+                          {doc.statusLog && doc.statusLog.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setActiveLogDoc(doc)}
+                              className="p-0.5 text-neutral-500 hover:text-white"
+                              title="View status log history"
+                            >
+                              <Clock size={11} />
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Convert to Invoice (for Quotation) */}
+                          {doc.type === 'quotation' && onConvertToInvoice && (
+                            <button
+                              type="button"
+                              onClick={() => onConvertToInvoice(doc)}
+                              className="p-1.5 text-sky-400 hover:text-sky-300 hover:bg-sky-950/40 rounded transition"
+                              title="Convert to Invoice"
+                            >
+                              <FileText size={13} />
+                            </button>
+                          )}
+
+                          {/* Revise Quotation */}
+                          {doc.type === 'quotation' && onReviseQuotation && (
+                            <button
+                              type="button"
+                              onClick={() => onReviseQuotation(doc)}
+                              className="p-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 rounded transition"
+                              title="Create Revision (e.g. -R1)"
+                            >
+                              <Copy size={13} />
+                            </button>
+                          )}
+
                           {/* Edit / Open */}
                           <button
                             type="button"
@@ -345,6 +444,66 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 className="px-3.5 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-md shadow"
               >
                 Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Log Modal (Read-Only) */}
+      {activeLogDoc && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-xl shadow-2xl max-w-md w-full space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Clock size={16} className="text-amber-400" />
+                <span>Status Log: {activeLogDoc.documentNumber}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLogDoc(null)}
+                className="text-neutral-400 hover:text-white text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-neutral-400">
+              Audit timeline for quotation status changes and revisions.
+            </p>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {(activeLogDoc.statusLog && activeLogDoc.statusLog.length > 0) ? (
+                activeLogDoc.statusLog.map((entry, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded bg-neutral-950 border border-neutral-800/80 text-xs space-y-1"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-white text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-neutral-700">
+                        {entry.status}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-mono">
+                        {new Date(entry.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    {entry.note && (
+                      <p className="text-[11px] text-neutral-300 m-0">{entry.note}</p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-neutral-500">No status log entries recorded.</p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setActiveLogDoc(null)}
+                className="px-3.5 py-1.5 text-xs font-semibold bg-white text-black hover:bg-neutral-200 rounded-md"
+              >
+                Close
               </button>
             </div>
           </div>

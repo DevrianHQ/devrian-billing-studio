@@ -1269,6 +1269,66 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
+        {/* 6. QUOTATION DEFAULTS */}
+        <div className="p-5 bg-neutral-900/90 border border-neutral-800 rounded-xl space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-200">
+            6. Quotation Defaults & Terms
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                Default Validity (Days)
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.quotationValidityDays ?? 15}
+                onChange={(e) => updateField('quotationValidityDays', Math.max(1, parseInt(e.target.value) || 15))}
+                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-2 rounded outline-none font-mono"
+              />
+              <span className="text-[10px] text-neutral-500 mt-1 block">Valid Till date = Quotation Date + N days</span>
+            </div>
+            <div>
+              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                Advance Required (%)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={formData.advancePercentDefault ?? 50}
+                onChange={(e) => updateField('advancePercentDefault', Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-2 rounded outline-none font-mono"
+              />
+              <span className="text-[10px] text-neutral-500 mt-1 block">Used in Terms default & Advance calculations</span>
+            </div>
+            <div>
+              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                Balance Due Window (Hours)
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.balanceDueHoursDefault ?? 48}
+                onChange={(e) => updateField('balanceDueHoursDefault', Math.max(1, parseInt(e.target.value) || 48))}
+                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-2 rounded outline-none font-mono"
+              />
+              <span className="text-[10px] text-neutral-500 mt-1 block">Used in Terms: "payable within X hours"</span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+              Default Closing Line
+            </label>
+            <input
+              type="text"
+              value={formData.quotationClosingTemplate || 'Thank you for considering DEVRIAN. We look forward to working with you.'}
+              onChange={(e) => updateField('quotationClosingTemplate', e.target.value)}
+              className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-2 rounded outline-none"
+            />
+          </div>
+        </div>
+
         {/* Submit */}
         <div className="flex justify-end pt-4">
           <button
