@@ -1344,18 +1344,16 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       paddingTop: '3mm',
                     }}
                   >
-                    {/* 1. SectionHeading "BILLING & TERM" + KeyValueStrip */}
-                    <div className="w-full flex flex-col">
-                      <div
-                        style={{
-                          paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
-                          paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
-                          marginBottom: '2mm',
-                        }}
-                      >
-                        <SectionHeading title="BILLING & TERM" />
-                      </div>
+                    {/* 1. KeyValueStrip (Black Header + Gray Box - Matching PaymentBox) */}
+                    <div
+                      className="w-full box-border"
+                      style={{
+                        paddingLeft: QUOTATION_TOKENS.layout.pageMarginLeft,
+                        paddingRight: QUOTATION_TOKENS.layout.pageMarginRight,
+                      }}
+                    >
                       <KeyValueStrip
+                        heading="BILLING & TERM"
                         billingCycle={doc.billingCycle || 'Monthly'}
                         startDate={doc.contractStartDate || doc.date}
                         minTermMonths={doc.minTermMonths || 3}
