@@ -788,6 +788,11 @@ export const App: React.FC = () => {
           tagline: updated.tagline || prev.customText.tagline,
           contactLine: updated.contactLine || `${updated.email || 'inquiry@devrian.in'} | ${updated.website || 'devrian.in'}`,
           udyamLine: `Udyam Reg. No.: ${updated.udyamNo || 'UDYAM-UP-54-0127731'} | Proprietor: ${cleanProprietor}`,
+          preparedByName: prev.customText.preparedByName || cleanProprietor,
+          preparedByTitle: prev.customText.preparedByTitle && !prev.customText.preparedByTitle.includes('Building Attention')
+            ? prev.customText.preparedByTitle
+            : 'Founder & CEO, DEVRIAN',
+          preparedByContact: prev.customText.preparedByContact || `${updated.email || 'inquiry@devrian.in'} • ${updated.website || 'devrian.in'}`,
         },
         updatedAt: new Date().toISOString(),
       };

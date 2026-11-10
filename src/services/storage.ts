@@ -7,6 +7,7 @@ import {
   SEED_CLIENTS,
   DEFAULT_QUOTATION_VISIBILITY,
   DEFAULT_QUOTATION_BLOCKS,
+  DEFAULT_QUOTATION_TEXT,
 } from './seedData';
 import { isAfter, parseISO } from 'date-fns';
 import { GoogleDriveSyncService } from './googleDriveSync';
@@ -179,6 +180,7 @@ export const StorageService = {
 
         // Auto-expire quotations whose validTill date has passed when status is SENT
         if (doc.type === 'quotation') {
+          doc = this.normalizeQuotationDoc(doc);
           const sanitizedNo = sanitizeQuotationNumber(doc.documentNumber, doc.date);
           if (sanitizedNo !== doc.documentNumber) {
             updated = true;
@@ -362,6 +364,37 @@ export const StorageService = {
   },
 
   // --- Drafts ---
+  normalizeQuotationDoc(doc: BillingDocument): BillingDocument {
+    if (doc.type !== 'quotation') return doc;
+    const isMonthly = doc.quotationType === 'monthly';
+    const defEyebrow = isMonthly ? 'QUOTATION · MONTHLY RETAINER' : 'QUOTATION · ONE-TIME PROJECT';
+    const defTitle = isMonthly ? 'MONTHLY\nRETAINER' : 'PROJECT\nQUOTATION';
+    const coverEyebrow =
+      doc.customText?.coverEyebrow && doc.customText.coverEyebrow.trim() !== '' && doc.customText.coverEyebrow !== 'QUOTATION'
+        ? doc.customText.coverEyebrow
+        : defEyebrow;
+    const rawName = doc.customText?.preparedByName || 'Dev Rajpoot';
+    const preparedByName = rawName.replace(/,?\s*Founder\s*(&|and)?\s*CEO/i, '').trim() || 'Dev Rajpoot';
+    const rawTitle = doc.customText?.preparedByTitle;
+    const preparedByTitle =
+      rawTitle && !rawTitle.includes('Building Attention')
+        ? rawTitle
+        : 'Founder & CEO, DEVRIAN';
+
+    return {
+      ...doc,
+      customText: {
+        ...DEFAULT_QUOTATION_TEXT,
+        ...(doc.customText || {}),
+        coverEyebrow,
+        coverTitle: doc.customText?.coverTitle || defTitle,
+        preparedByName,
+        preparedByTitle,
+        preparedByContact: doc.customText?.preparedByContact || 'inquiry@devrian.in • devrian.in',
+      },
+    };
+  },
+
   saveDraft(doc: BillingDocument): void {
     try {
       localStorage.setItem(STORAGE_KEYS.DRAFT, JSON.stringify(doc));
@@ -373,7 +406,13 @@ export const StorageService = {
   getDraft(): BillingDocument | null {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.DRAFT);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const doc: BillingDocument = JSON.parse(data);
+        if (doc && doc.type === 'quotation') {
+          return this.normalizeQuotationDoc(doc);
+        }
+        return doc;
+      }
     } catch (e) {
       console.error('Failed to get draft', e);
     }

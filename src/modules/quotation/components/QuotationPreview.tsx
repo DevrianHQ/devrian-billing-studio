@@ -235,7 +235,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         display: 'block',
                       }}
                     >
-                      {doc.customText?.coverEyebrow || doc.customText?.eyebrow || 'QUOTATION · ONE-TIME PROJECT'}
+                      {doc.customText?.coverEyebrow && doc.customText.coverEyebrow !== 'QUOTATION'
+                        ? doc.customText.coverEyebrow
+                        : 'QUOTATION · ONE-TIME PROJECT'}
                     </span>
                   </div>
                 </div>
@@ -452,7 +454,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             display: 'block',
                           }}
                         >
-                          {doc.customText?.preparedByName || business.proprietor || 'Dev Rajpoot'}
+                          {(doc.customText?.preparedByName || business.proprietor || 'Dev Rajpoot')
+                            .replace(/,?\s*Founder\s*(&|and)?\s*CEO/i, '')
+                            .trim() || 'Dev Rajpoot'}
                         </span>
                         {/* Line 2: Role / Company */}
                         <span
@@ -465,7 +469,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          {doc.customText?.preparedByTitle || (business.tagline ? `${business.tagline}, ${business.businessName || 'DEVRIAN'}` : 'Founder & CEO, DEVRIAN')}
+                          {doc.customText?.preparedByTitle && !doc.customText.preparedByTitle.includes('Building Attention')
+                            ? doc.customText.preparedByTitle
+                            : 'Founder & CEO, DEVRIAN'}
                         </span>
                         {/* Line 3: Email & Website */}
                         <span
@@ -477,7 +483,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          {doc.customText?.preparedByContact || `${business.email || 'inquiry@devrian.in'} • ${business.website || 'devrian.in'}`}
+                          {doc.customText?.preparedByContact || 'inquiry@devrian.in • devrian.in'}
                         </span>
                       </div>
                     </div>
@@ -826,7 +832,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         display: 'block',
                       }}
                     >
-                      {doc.customText?.coverEyebrow || doc.customText?.eyebrow || 'QUOTATION · MONTHLY RETAINER'}
+                      {doc.customText?.coverEyebrow && doc.customText.coverEyebrow !== 'QUOTATION'
+                        ? doc.customText.coverEyebrow
+                        : 'QUOTATION · MONTHLY RETAINER'}
                     </span>
                   </div>
                 </div>
@@ -1043,7 +1051,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             display: 'block',
                           }}
                         >
-                          {doc.customText?.preparedByName || business.proprietor || 'Dev Rajpoot'}
+                          {(doc.customText?.preparedByName || business.proprietor || 'Dev Rajpoot')
+                            .replace(/,?\s*Founder\s*(&|and)?\s*CEO/i, '')
+                            .trim() || 'Dev Rajpoot'}
                         </span>
                         {/* Line 2: Role / Company */}
                         <span
@@ -1056,7 +1066,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          {doc.customText?.preparedByTitle || (business.tagline ? `${business.tagline}, ${business.businessName || 'DEVRIAN'}` : 'Founder & CEO, DEVRIAN')}
+                          {doc.customText?.preparedByTitle && !doc.customText.preparedByTitle.includes('Building Attention')
+                            ? doc.customText.preparedByTitle
+                            : 'Founder & CEO, DEVRIAN'}
                         </span>
                         {/* Line 3: Email & Website */}
                         <span
@@ -1068,7 +1080,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          {doc.customText?.preparedByContact || `${business.email || 'inquiry@devrian.in'} • ${business.website || 'devrian.in'}`}
+                          {doc.customText?.preparedByContact || 'inquiry@devrian.in • devrian.in'}
                         </span>
                       </div>
                     </div>

@@ -228,7 +228,7 @@ export const DEFAULT_QUOTATION_VISIBILITY: DocumentSectionVisibility = {
 export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   businessName: 'DEVRIAN',
   tagline: 'Building Attention, Authority & Growth for Modern Businesses',
-  proprietor: 'Dev Rajpoot, Founder & CEO',
+  proprietor: 'Dev Rajpoot',
   email: 'inquiry@devrian.in',
   website: 'devrian.in',
   contactLine: 'inquiry@devrian.in | devrian.in',
@@ -237,19 +237,19 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   showAddress: false,
   phone: '',
   showPhone: false,
-  
+
   bankAccountName: 'Dev Rajpoot (DEVRIAN)',
   bankName: 'HDFC Bank',
   bankAccountNumber: '50100234567890',
   bankIfsc: 'HDFC0001234',
   showBankDetails: true,
-  
+
   upiId: 'inquiry@devrian.in',
   showUpi: true,
   showUpiQr: false,
-  
+
   businessGstin: '',
-  
+
   // Branding Controls
   logoDataUrl: '',
   whiteLogoDataUrl: '/brand/devrian-symbol-pure-white.png',
@@ -259,14 +259,14 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
   showWatermark: false, // DEFAULT OFF
   watermarkOpacity: 0.025, // 2.5%
   accentColor: '#0E0E0E',
-  
+
   signatureDataUrl: '',
   includeSignatureInBackup: false,
-  
+
   invoicePattern: 'DEV-{YYYY}-{001}',
   receiptPattern: 'DEV-REC-{001}',
   quotationPattern: 'DEV-QT-{YYYY}-{001}',
-  
+
   itemPresets: [
     { title: 'Short-form video editing (reel)', defaultRate: 800 },
     { title: 'Social media management (monthly)', defaultRate: 15000 },
@@ -276,7 +276,7 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
     { title: 'Shooting (half day)', defaultRate: 5000 },
     { title: 'Content strategy', defaultRate: 8000 }
   ],
-  
+
   invoiceTermsTemplate: [
     'Payment is due by the due date mentioned above.',
     'Work delivery, revisions and refund terms are as per the signed proposal / DEVRIAN Terms & Conditions.',
@@ -284,15 +284,15 @@ export const DEFAULT_BUSINESS_PROFILE: BusinessProfile = {
     'Please share the payment screenshot or UTR number after paying.'
   ],
   invoiceClosingTemplate: 'Thank you for choosing DEVRIAN. We look forward to growing with you.',
-  
+
   receiptTermsTemplate: [
     'GST is not applicable (not registered). The remaining balance is payable within 48 hours after project completion and approval, as per the project proposal.'
   ],
   receiptClosingTemplate: 'Thank you for your payment. Work will begin once the required materials (footage, scripts, logos and other assets) are received.',
-  
+
   quotationTermsTemplate: DEFAULT_QUOTATION_TERMS,
   quotationClosingTemplate: 'Thank you for considering DEVRIAN. We look forward to working with you.',
-  
+
   quotationValidityDays: 15,
   advancePercentDefault: 50,
   balanceDueHoursDefault: 48,
@@ -385,7 +385,7 @@ export const SEED_RECEIPT: BillingDocument = {
     showQrOnDoc: false
   },
   notes: [
-    'GST is not applicable (not registered). The remaining ₹3,000 is payable within 48 hours after project completion and approval, as per the project proposal.'
+    'GST is not applicable (not registered). The remaining Amount is payable within 48 hours after project completion and approval, as per the project proposal.'
   ],
   closingLine: 'Thank you for your payment. Work will begin once the required materials (footage, scripts, logos and other assets) are received.',
   createdAt: '2026-11-05T13:39:00.000Z',
