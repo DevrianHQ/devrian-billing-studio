@@ -70,84 +70,83 @@ export const ListTable: React.FC<ListTableProps> = ({
           </tr>
         </thead>
         <tbody>
-          {deliverables.map((item, index) => (
-            <tr
-              key={item.id || index}
-              style={{
-                minHeight: `${QUOTATION_TOKENS.spacing.num.tableRowStandardH}mm`, // 9.5mm
-                borderBottom: `${QUOTATION_TOKENS.layout.ruleThickness} solid ${QUOTATION_TOKENS.colors.rule}`,
-              }}
-            >
-              {/* # Index Column (10mm) */}
-              <td
+          {deliverables.map((item, index) => {
+            const isGray = index % 2 === 0;
+            return (
+              <tr
+                key={item.id || index}
                 style={{
-                  paddingTop: '2mm',
-                  paddingBottom: '2mm',
-                  paddingLeft: '3mm',
-                  verticalAlign: 'middle',
-                  fontFamily: QUOTATION_TOKENS.font.family,
-                  fontSize: '8.5pt',
-                  fontWeight: 600,
-                  color: QUOTATION_TOKENS.colors.greyLight,
-                  ...QUOTATION_TOKENS.font.scale.numbers,
+                  minHeight: `${QUOTATION_TOKENS.spacing.num.tableRowStandardH}mm`, // 9.5mm
+                  backgroundColor: isGray ? QUOTATION_TOKENS.colors.noteBackground : QUOTATION_TOKENS.colors.white,
+                  borderBottom: `${QUOTATION_TOKENS.layout.ruleThickness} solid ${QUOTATION_TOKENS.colors.rule}`,
                 }}
               >
-                {String(index + 1).padStart(2, '0')}
-              </td>
-
-              {/* Deliverable Name */}
-              <td
-                style={{
-                  paddingTop: '2mm',
-                  paddingBottom: '2mm',
-                  paddingLeft: '2.5mm',
-                  paddingRight: '3mm',
-                  verticalAlign: 'middle',
-                }}
-              >
-                <span
+                {/* # Index Column (10mm) */}
+                <td
                   style={{
+                    paddingTop: '2.5mm',
+                    paddingBottom: '2.5mm',
+                    paddingLeft: '3mm',
+                    verticalAlign: 'middle',
                     fontFamily: QUOTATION_TOKENS.font.family,
-                    fontSize: '9.2pt',
+                    fontSize: '8.5pt',
                     fontWeight: 600,
-                    color: QUOTATION_TOKENS.colors.black,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {item.item}
-                </span>
-              </td>
-
-              {/* Quantity / Scope Badge (right-aligned) */}
-              <td
-                style={{
-                  paddingTop: '2mm',
-                  paddingBottom: '2mm',
-                  textAlign: 'right',
-                  paddingRight: '3.5mm',
-                  verticalAlign: 'middle',
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: QUOTATION_TOKENS.font.family,
-                    fontSize: '7.5pt',
-                    fontWeight: 600,
-                    color: QUOTATION_TOKENS.colors.black,
-                    backgroundColor: QUOTATION_TOKENS.colors.noteBackground,
-                    border: `0.2mm solid ${QUOTATION_TOKENS.colors.boxBorder}`,
-                    padding: '0.6mm 2.2mm',
-                    borderRadius: '0mm',
-                    letterSpacing: '0.04em',
-                    display: 'inline-block',
+                    color: QUOTATION_TOKENS.colors.greyLight,
                     ...QUOTATION_TOKENS.font.scale.numbers,
                   }}
                 >
-                  {item.quantity}
-                </span>
-              </td>
-            </tr>
-          ))}
+                  {String(index + 1).padStart(2, '0')}
+                </td>
+
+                {/* Deliverable Name */}
+                <td
+                  style={{
+                    paddingTop: '2.5mm',
+                    paddingBottom: '2.5mm',
+                    paddingLeft: '2.5mm',
+                    paddingRight: '3mm',
+                    verticalAlign: 'middle',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: QUOTATION_TOKENS.font.family,
+                      fontSize: '9.2pt',
+                      fontWeight: 600,
+                      color: QUOTATION_TOKENS.colors.black,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {item.item}
+                  </span>
+                </td>
+
+                {/* Quantity / Scope (right-aligned, no box, matching deliverable font & size) */}
+                <td
+                  style={{
+                    paddingTop: '2.5mm',
+                    paddingBottom: '2.5mm',
+                    textAlign: 'right',
+                    paddingRight: '3.5mm',
+                    verticalAlign: 'middle',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: QUOTATION_TOKENS.font.family,
+                      fontSize: '9.2pt',
+                      fontWeight: 600,
+                      color: QUOTATION_TOKENS.colors.black,
+                      lineHeight: 1.3,
+                      ...QUOTATION_TOKENS.font.scale.numbers,
+                    }}
+                  >
+                    {item.quantity}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
