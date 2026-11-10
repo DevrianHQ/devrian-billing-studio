@@ -1,6 +1,6 @@
 import React from 'react';
 import { BillingDocument, MonthlyDeliverable, QuotationType, BusinessProfile } from '../../../types';
-import { DEFAULT_MONTHLY_DELIVERABLES } from '../../../services/seedData';
+import { DEFAULT_MONTHLY_DELIVERABLES, DEFAULT_QUOTATION_TEXT } from '../../../services/seedData';
 import { PROJECT_DEFAULT_TERMS, MONTHLY_DEFAULT_TERMS, resolveQuotationTermsList } from '../../../services/policyAdapter';
 import { Plus, Trash2, ArrowUp, ArrowDown, Briefcase, Calendar, CheckCircle2 } from 'lucide-react';
 
@@ -39,11 +39,24 @@ export const FormQuotationSettings: React.FC<FormQuotationSettingsProps> = ({
     const resolvedTerms = resolveQuotationTermsList(termsTemplate, business);
 
     const defaultDeliverables = business.monthlyQuotationDefaults?.deliverables || DEFAULT_MONTHLY_DELIVERABLES;
+    const isNowMonthly = newType === 'monthly';
+    const updatedCustomText = {
+      ...DEFAULT_QUOTATION_TEXT,
+      ...(doc.customText || {}),
+      coverEyebrow: isNowMonthly ? 'QUOTATION · MONTHLY RETAINER' : 'QUOTATION · ONE-TIME PROJECT',
+      coverTitle: isNowMonthly ? 'MONTHLY\nRETAINER' : 'PROJECT\nQUOTATION',
+      itemsSectionHeading: isNowMonthly ? "WHAT'S INCLUDED EACH MONTH" : 'SCOPE OF WORK',
+    };
 
     const updated: BillingDocument = {
       ...doc,
       quotationType: newType,
       items: updatedItems,
+      projectName: doc.projectName || (isNowMonthly ? 'Social Media Management & Monthly Creative Retainer' : 'Commercial Creative & Video Production Services'),
+      platforms: doc.platforms || 'Instagram, YouTube Shorts, LinkedIn',
+      billingCycle: doc.billingCycle || business.monthlyQuotationDefaults?.billingCycle || 'Monthly',
+      paymentDueDescription: doc.paymentDueDescription || business.monthlyQuotationDefaults?.paymentDueDescription || 'In advance, on or before the 1st of each cycle',
+      autoRenewalDescription: doc.autoRenewalDescription || business.monthlyQuotationDefaults?.autoRenewalDescription || 'Auto-renews monthly until cancelled in writing',
       monthlyDeliverables:
         newType === 'monthly'
           ? (doc.monthlyDeliverables && doc.monthlyDeliverables.length > 0 ? doc.monthlyDeliverables : [...defaultDeliverables])
@@ -52,6 +65,7 @@ export const FormQuotationSettings: React.FC<FormQuotationSettingsProps> = ({
       minTermMonths: doc.minTermMonths || business.monthlyQuotationDefaults?.minTermMonths || 3,
       noticePeriodDays: doc.noticePeriodDays || business.monthlyQuotationDefaults?.noticePeriodDays || 30,
       autoRenewal: doc.autoRenewal ?? true,
+      customText: updatedCustomText,
       notes: resolvedTerms,
     };
     recalculateFinancials(updated);
@@ -244,6 +258,27 @@ export const FormQuotationSettings: React.FC<FormQuotationSettingsProps> = ({
               );
             })}
           </div>
+
+          {/* Deliverables Rollover Notice */}
+          <div className="pt-2 border-t border-neutral-800/80">
+            <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+              Deliverables Rollover / Reset Notice
+            </label>
+            <input
+              type="text"
+              value={doc.customText?.deliverablesResetNote ?? 'Deliverables reset at the start of each monthly billing cycle and do not roll over.'}
+              onChange={(e) => {
+                onChange({
+                  ...doc,
+                  customText: {
+                    ...doc.customText,
+                    deliverablesResetNote: e.target.value,
+                  },
+                });
+              }}
+              className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1.5 rounded outline-none italic"
+            />
+          </div>
         </div>
       )}
 
@@ -254,6 +289,18 @@ export const FormQuotationSettings: React.FC<FormQuotationSettingsProps> = ({
             Billing &amp; Retainer Terms
           </label>
           <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                Billing Cycle
+              </label>
+              <input
+                type="text"
+                value={doc.billingCycle || 'Monthly'}
+                onChange={(e) => updateField('billingCycle', e.target.value)}
+                placeholder="e.g. Monthly"
+                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1.5 rounded outline-none"
+              />
+            </div>
             <div>
               <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
                 Contract Start Date
@@ -280,6 +327,18 @@ export const FormQuotationSettings: React.FC<FormQuotationSettingsProps> = ({
                 />
                 <span className="text-[11px] text-neutral-400">months</span>
               </div>
+            </div>
+            <div>
+              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                Payment Due
+              </label>
+              <input
+                type="text"
+                value={doc.paymentDueDescription || 'In advance, on or before the 1st of each cycle'}
+                onChange={(e) => updateField('paymentDueDescription', e.target.value)}
+                placeholder="e.g. In advance, on or before the 1st of each cycle"
+                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1.5 rounded outline-none"
+              />
             </div>
             <div>
               <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
@@ -310,6 +369,18 @@ export const FormQuotationSettings: React.FC<FormQuotationSettingsProps> = ({
                 />
                 <span className="text-[11px] text-neutral-300">Auto-renews monthly</span>
               </label>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+                Auto-Renewal Description
+              </label>
+              <input
+                type="text"
+                value={doc.autoRenewalDescription || 'Auto-renews monthly until cancelled in writing'}
+                onChange={(e) => updateField('autoRenewalDescription', e.target.value)}
+                placeholder="e.g. Auto-renews monthly until cancelled in writing"
+                className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1.5 rounded outline-none"
+              />
             </div>
           </div>
         </div>

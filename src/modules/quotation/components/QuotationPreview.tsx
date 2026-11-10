@@ -159,10 +159,6 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
           <>
             {/* ----------------- PAGE 1: DEEP BLACK COVER PAGE (Matching Terms & Conditions) ----------------- */}
             <div className="flex flex-col items-center">
-              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
-                Page 1 of 2 · Project Cover &amp; Information
-              </div>
-
               <div
                 className="a4-page-export text-white relative box-border overflow-hidden shadow-2xl flex flex-col justify-between"
                 style={{
@@ -239,7 +235,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         display: 'block',
                       }}
                     >
-                      QUOTATION · ONE-TIME PROJECT
+                      {doc.customText?.coverEyebrow || doc.customText?.eyebrow || 'QUOTATION · ONE-TIME PROJECT'}
                     </span>
                   </div>
                 </div>
@@ -264,8 +260,14 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       margin: 0,
                     }}
                   >
-                    PROJECT<br />
-                    QUOTATION
+                    {doc.customText?.coverTitle ? (
+                      <span style={{ whiteSpace: 'pre-line' }}>{doc.customText.coverTitle}</span>
+                    ) : (
+                      <>
+                        PROJECT<br />
+                        QUOTATION
+                      </>
+                    )}
                   </h1>
 
                   {/* Accent Line */}
@@ -450,7 +452,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             display: 'block',
                           }}
                         >
-                          Dev Rajpoot
+                          {doc.customText?.preparedByName || business.proprietor || 'Dev Rajpoot'}
                         </span>
                         {/* Line 2: Role / Company */}
                         <span
@@ -463,7 +465,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          Founder &amp; CEO, DEVRIAN
+                          {doc.customText?.preparedByTitle || (business.tagline ? `${business.tagline}, ${business.businessName || 'DEVRIAN'}` : 'Founder & CEO, DEVRIAN')}
                         </span>
                         {/* Line 3: Email & Website */}
                         <span
@@ -475,7 +477,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          inquiry@devrian.in • devrian.in
+                          {doc.customText?.preparedByContact || `${business.email || 'inquiry@devrian.in'} • ${business.website || 'devrian.in'}`}
                         </span>
                       </div>
                     </div>
@@ -574,7 +576,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       color: QUOTATION_TOKENS.colors.greyMid,
                     }}
                   >
-                    <span>Udyam Reg. No.: UDYAM-UP-54-0127731 • devrian.in</span>
+                    <span>
+                      {doc.customText?.udyamLine || (business.udyamNo ? `Udyam Reg. No.: ${business.udyamNo} • ${business.website || 'devrian.in'}` : 'Udyam Reg. No.: UDYAM-UP-54-0127731 • devrian.in')}
+                    </span>
                     <span>Commercial Project Quotation • Page 1 of 2</span>
                   </div>
                 </div>
@@ -583,10 +587,6 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
 
             {/* ----------------- PAGE 2: SCOPE OF WORK, PRICING & ACCEPTANCE ----------------- */}
             <div className="flex flex-col items-center">
-              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
-                Page 2 of 2 · Scope of Work, Pricing &amp; Client Acceptance
-              </div>
-
               <div
                 className="a4-page-export bg-white text-black relative box-border overflow-hidden shadow-2xl"
                 style={{
@@ -619,7 +619,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         marginBottom: '2mm',
                       }}
                     >
-                      <SectionHeading title="SCOPE OF WORK" />
+                      <SectionHeading title={doc.customText?.itemsSectionHeading || 'SCOPE OF WORK'} />
                     </div>
                     <DataTable
                       items={items.slice(0, 6)}
@@ -668,7 +668,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                     >
                       <PaymentBox
                         business={business}
-                        heading="PAYMENT DETAILS"
+                        heading={doc.customText?.paymentSectionHeading || 'PAYMENT DETAILS'}
                         showQr={showQr}
                         amount={financials.advanceAmount}
                         quotationNumber={doc.documentNumber}
@@ -696,7 +696,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           lineHeight: 1.3,
                         }}
                       >
-                        Prices exclude GST. Taxes will be added if applicable at billing.
+                        {doc.customText?.gstLine || 'Prices exclude GST. Taxes will be added if applicable at billing.'}
                       </p>
                     </div>
                   )}
@@ -704,7 +704,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                   {/* 5. NoteBox "TERMS & NOTES" (Max 5 points) */}
                   {showTerms && (
                     <NoteBox
-                      heading="TERMS & NOTES"
+                      heading={doc.customText?.termsSectionHeading || 'TERMS & NOTES'}
                       notes={termsList.slice(0, 5)}
                       variables={policyVars}
                     />
@@ -721,14 +721,14 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       isFinal={doc.isFinal}
                       showClientSignature={showClientCol}
                       showLegalDisclaimer={showLegalDisclaimer}
-                      instructionText={template.labels.instructionLine}
+                      instructionText={doc.customText?.instructionLine || template.labels.instructionLine}
                       isProject={true}
                     />
                   )}
 
                   {/* 7. ClosingLine */}
                   {showClosingLine && (
-                    <ClosingLine text={template.labels.closingLine} />
+                    <ClosingLine text={doc.customText?.closingLine || template.labels.closingLine} />
                   )}
                 </div>
 
@@ -750,10 +750,6 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
           <>
             {/* ----------------- PAGE 1: DEEP BLACK COVER PAGE (Matching Terms & Conditions) ----------------- */}
             <div className="flex flex-col items-center">
-              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
-                Page 1 of 3 · Retainer Cover &amp; Information
-              </div>
-
               <div
                 className="a4-page-export text-white relative box-border overflow-hidden shadow-2xl flex flex-col justify-between"
                 style={{
@@ -830,7 +826,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         display: 'block',
                       }}
                     >
-                      QUOTATION · MONTHLY RETAINER
+                      {doc.customText?.coverEyebrow || doc.customText?.eyebrow || 'QUOTATION · MONTHLY RETAINER'}
                     </span>
                   </div>
                 </div>
@@ -855,8 +851,14 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       margin: 0,
                     }}
                   >
-                    MONTHLY<br />
-                    RETAINER
+                    {doc.customText?.coverTitle ? (
+                      <span style={{ whiteSpace: 'pre-line' }}>{doc.customText.coverTitle}</span>
+                    ) : (
+                      <>
+                        MONTHLY<br />
+                        RETAINER
+                      </>
+                    )}
                   </h1>
 
                   {/* Accent Line */}
@@ -1041,7 +1043,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             display: 'block',
                           }}
                         >
-                          Dev Rajpoot
+                          {doc.customText?.preparedByName || business.proprietor || 'Dev Rajpoot'}
                         </span>
                         {/* Line 2: Role / Company */}
                         <span
@@ -1054,7 +1056,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          Founder &amp; CEO, DEVRIAN
+                          {doc.customText?.preparedByTitle || (business.tagline ? `${business.tagline}, ${business.businessName || 'DEVRIAN'}` : 'Founder & CEO, DEVRIAN')}
                         </span>
                         {/* Line 3: Email & Website */}
                         <span
@@ -1066,7 +1068,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             marginTop: '0.8mm',
                           }}
                         >
-                          inquiry@devrian.in • devrian.in
+                          {doc.customText?.preparedByContact || `${business.email || 'inquiry@devrian.in'} • ${business.website || 'devrian.in'}`}
                         </span>
                       </div>
                     </div>
@@ -1165,7 +1167,9 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       color: QUOTATION_TOKENS.colors.greyMid,
                     }}
                   >
-                    <span>Udyam Reg. No.: UDYAM-UP-54-0127731 • devrian.in</span>
+                    <span>
+                      {doc.customText?.udyamLine || (business.udyamNo ? `Udyam Reg. No.: ${business.udyamNo} • ${business.website || 'devrian.in'}` : 'Udyam Reg. No.: UDYAM-UP-54-0127731 • devrian.in')}
+                    </span>
                     <span>Commercial Monthly Retainer Quotation • Page 1 of 3</span>
                   </div>
                 </div>
@@ -1174,10 +1178,6 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
 
             {/* ----------------- PAGE 2: SCOPE OF DELIVERABLES & PRICING ----------------- */}
             <div className="flex flex-col items-center">
-              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
-                Page 2 of 3 · Scope of Deliverables &amp; Monthly Pricing
-              </div>
-
               <div
                 className="a4-page-export bg-white text-black relative box-border overflow-hidden shadow-2xl flex flex-col justify-between"
                 style={{
@@ -1212,7 +1212,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           marginBottom: '2mm',
                         }}
                       >
-                        <SectionHeading title="WHAT'S INCLUDED EACH MONTH" />
+                        <SectionHeading title={doc.customText?.deliverablesSectionHeading || "WHAT'S INCLUDED EACH MONTH"} />
                       </div>
                       <ListTable deliverables={deliverablesList.slice(0, 6)} />
                       <div
@@ -1230,7 +1230,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             color: QUOTATION_TOKENS.colors.greyDark,
                           }}
                         >
-                          Deliverables reset at the start of each monthly billing cycle and do not roll over.
+                          {doc.customText?.deliverablesResetNote || 'Deliverables reset at the start of each monthly billing cycle and do not roll over.'}
                         </span>
                       </div>
                     </div>
@@ -1244,7 +1244,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                           marginBottom: '2mm',
                         }}
                       >
-                        <SectionHeading title="PRICING" />
+                        <SectionHeading title={doc.customText?.pricingSectionHeading || 'PRICING'} />
                       </div>
                       <DataTable
                         items={items.slice(0, 3)}
@@ -1315,10 +1315,6 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
 
             {/* ----------------- PAGE 3: TERMS, PAYMENT & CLIENT ACCEPTANCE ----------------- */}
             <div className="flex flex-col items-center">
-              <div className="text-[10px] font-mono tracking-widest text-neutral-400 uppercase mb-2">
-                Page 3 of 3 · Terms, Payment &amp; Client Acceptance
-              </div>
-
               <div
                 className="a4-page-export bg-white text-black relative box-border overflow-hidden shadow-2xl flex flex-col justify-between"
                 style={{
@@ -1353,7 +1349,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       }}
                     >
                       <KeyValueStrip
-                        heading="BILLING & TERM"
+                        heading={doc.customText?.billingSectionHeading || 'BILLING & TERM'}
                         billingCycle={doc.billingCycle || 'Monthly'}
                         startDate={doc.contractStartDate || doc.date}
                         minTermMonths={doc.minTermMonths || 3}
@@ -1374,7 +1370,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                       >
                         <PaymentBox
                           business={business}
-                          heading="PAYMENT DETAILS"
+                          heading={doc.customText?.paymentSectionHeading || 'PAYMENT DETAILS'}
                           showQr={showQr}
                           amount={financials.dueToStart}
                           quotationNumber={doc.documentNumber}
@@ -1402,7 +1398,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                             lineHeight: 1.3,
                           }}
                         >
-                          Prices exclude GST. Taxes will be added if applicable at billing.
+                          {doc.customText?.gstLine || 'Prices exclude GST. Taxes will be added if applicable at billing.'}
                         </p>
                       </div>
                     )}
@@ -1410,7 +1406,7 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                     {/* 4. NoteBox "TERMS & NOTES" (Max 7 points) */}
                     {showTerms && (
                       <NoteBox
-                        heading="TERMS & NOTES"
+                        heading={doc.customText?.termsSectionHeading || 'TERMS & NOTES'}
                         notes={termsList.slice(0, 7)}
                         variables={policyVars}
                       />
@@ -1427,14 +1423,14 @@ export const QuotationPreview: React.FC<QuotationPreviewProps> = ({
                         isFinal={doc.isFinal}
                         showClientSignature={showClientCol}
                         showLegalDisclaimer={showLegalDisclaimer}
-                        instructionText={template.labels.instructionLine}
+                        instructionText={doc.customText?.instructionLine || template.labels.instructionLine}
                         isProject={false}
                       />
                     )}
 
                     {/* 6. ClosingLine */}
                     {showClosingLine && (
-                      <ClosingLine text={template.labels.closingLine} />
+                      <ClosingLine text={doc.customText?.closingLine || template.labels.closingLine} />
                     )}
                   </div>
                 </div>

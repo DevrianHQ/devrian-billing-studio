@@ -64,6 +64,16 @@ export const DEFAULT_INVOICE_TEXT: DocumentCustomText = {
   signatureTitle: 'Founder, DEVRIAN',
   signatureAuditLine: 'Issued by DEVRIAN',
   signatureDisclaimer: 'Not valid for banking, cheque or legal-instrument purposes',
+  instructionLine: 'To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start.',
+  deliverablesResetNote: 'Deliverables reset at the start of each monthly billing cycle and do not roll over.',
+  deliverablesSectionHeading: "WHAT'S INCLUDED EACH MONTH",
+  pricingSectionHeading: 'PRICING',
+  billingSectionHeading: 'BILLING & TERM',
+  coverEyebrow: 'QUOTATION · ONE-TIME PROJECT',
+  coverTitle: 'PROJECT\nQUOTATION',
+  preparedByName: 'Dev Rajpoot',
+  preparedByTitle: 'Founder & CEO, DEVRIAN',
+  preparedByContact: 'inquiry@devrian.in • devrian.in',
 };
 
 export const DEFAULT_RECEIPT_TEXT: DocumentCustomText = {
@@ -94,6 +104,16 @@ export const DEFAULT_RECEIPT_TEXT: DocumentCustomText = {
   signatureTitle: 'Founder, DEVRIAN',
   signatureAuditLine: 'Issued by DEVRIAN',
   signatureDisclaimer: 'Not valid for banking, cheque or legal-instrument purposes',
+  instructionLine: 'To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start.',
+  deliverablesResetNote: 'Deliverables reset at the start of each monthly billing cycle and do not roll over.',
+  deliverablesSectionHeading: "WHAT'S INCLUDED EACH MONTH",
+  pricingSectionHeading: 'PRICING',
+  billingSectionHeading: 'BILLING & TERM',
+  coverEyebrow: 'QUOTATION · ONE-TIME PROJECT',
+  coverTitle: 'PROJECT\nQUOTATION',
+  preparedByName: 'Dev Rajpoot',
+  preparedByTitle: 'Founder & CEO, DEVRIAN',
+  preparedByContact: 'inquiry@devrian.in • devrian.in',
 };
 
 export const DEFAULT_INCLUSIONS = '';
@@ -155,6 +175,16 @@ export const DEFAULT_QUOTATION_TEXT: DocumentCustomText = {
   signatureTitle: 'Founder, DEVRIAN',
   signatureAuditLine: 'Issued by DEVRIAN',
   signatureDisclaimer: 'Not valid for banking, cheque or legal-instrument purposes',
+  instructionLine: 'To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start.',
+  deliverablesResetNote: 'Deliverables reset at the start of each monthly billing cycle and do not roll over.',
+  deliverablesSectionHeading: "WHAT'S INCLUDED EACH MONTH",
+  pricingSectionHeading: 'PRICING',
+  billingSectionHeading: 'BILLING & TERM',
+  coverEyebrow: 'QUOTATION · ONE-TIME PROJECT',
+  coverTitle: 'PROJECT\nQUOTATION',
+  preparedByName: 'Dev Rajpoot',
+  preparedByTitle: 'Founder & CEO, DEVRIAN',
+  preparedByContact: 'inquiry@devrian.in • devrian.in',
 };
 
 export const DEFAULT_VISIBILITY: DocumentSectionVisibility = {
@@ -448,6 +478,8 @@ export const SEED_QUOTATION: BillingDocument = {
     ...DEFAULT_QUOTATION_VISIBILITY,
   },
   quotationType: 'project',
+  platforms: 'Instagram, YouTube Shorts, LinkedIn',
+  billingCycle: 'Monthly',
   contractStartDate: '2026-11-15',
   minTermMonths: 3,
   noticePeriodDays: 30,

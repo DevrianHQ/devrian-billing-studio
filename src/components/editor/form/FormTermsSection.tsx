@@ -121,6 +121,21 @@ export const FormTermsSection: React.FC<FormTermsSectionProps> = ({
           })}
         </div>
 
+        {/* Acceptance Instruction Line (Above Signatures) */}
+        {isQuotation && (
+          <div className="pt-2">
+            <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+              Acceptance Instruction Line (Above Signatures)
+            </label>
+            <input
+              type="text"
+              value={doc.customText?.instructionLine || 'To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start.'}
+              onChange={(e) => updateCustomText('instructionLine', e.target.value)}
+              className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-3 py-1.5 rounded outline-none"
+            />
+          </div>
+        )}
+
         {/* Closing Line */}
         <div className="pt-2">
           <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">

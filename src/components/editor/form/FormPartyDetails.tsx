@@ -25,24 +25,46 @@ export const FormPartyDetails: React.FC<FormPartyDetailsProps> = ({
           </label>
           <input
             type="text"
-            value={doc.projectName || ''}
+            value={
+              doc.projectName ||
+              (isQuotation
+                ? doc.quotationType === 'monthly'
+                  ? 'Social Media Management & Monthly Creative Retainer'
+                  : 'Commercial Creative & Video Production Services'
+                : '')
+            }
             onChange={(e) => updateField('projectName', e.target.value)}
             placeholder="e.g. FMCG Video Editing – 15 Videos"
             className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none font-medium"
           />
         </div>
 
-        {isQuotation && (
+        {isQuotation && (!doc.quotationType || doc.quotationType === 'project') && (
           <div>
             <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
               Estimated Delivery (Short Line on Document Party Row)
             </label>
             <input
               type="text"
-              value={doc.estimatedDelivery || ''}
+              value={doc.estimatedDelivery || '10 working days after advance and materials'}
               onChange={(e) => updateField('estimatedDelivery', e.target.value)}
               placeholder="e.g. 10 working days after advance and materials"
               className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none"
+            />
+          </div>
+        )}
+
+        {isQuotation && (doc.quotationType === 'monthly' || doc.quotationType === 'hybrid') && (
+          <div>
+            <label className="block text-[10px] text-neutral-400 font-semibold uppercase mb-1">
+              Cover Subtitle / Target Platforms
+            </label>
+            <input
+              type="text"
+              value={doc.platforms || 'Instagram, YouTube Shorts, LinkedIn'}
+              onChange={(e) => updateField('platforms', e.target.value)}
+              placeholder="e.g. Instagram, YouTube, LinkedIn"
+              className="w-full bg-neutral-950 border border-neutral-800 focus:border-white text-white text-xs px-3 py-1.5 rounded outline-none font-medium"
             />
           </div>
         )}

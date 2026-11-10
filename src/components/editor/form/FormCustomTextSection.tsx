@@ -147,6 +147,37 @@ export const FormCustomTextSection: React.FC<FormCustomTextSectionProps> = ({
                 className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
               />
             </div>
+            {isQuotation && (
+              <>
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">Deliverables Section Heading</label>
+                  <input
+                    type="text"
+                    value={doc.customText.deliverablesSectionHeading || "WHAT'S INCLUDED EACH MONTH"}
+                    onChange={(e) => updateCustomText('deliverablesSectionHeading', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">Pricing Section Heading</label>
+                  <input
+                    type="text"
+                    value={doc.customText.pricingSectionHeading || 'PRICING'}
+                    onChange={(e) => updateCustomText('pricingSectionHeading', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-neutral-500 uppercase">Billing &amp; Term Heading</label>
+                  <input
+                    type="text"
+                    value={doc.customText.billingSectionHeading || 'BILLING & TERM'}
+                    onChange={(e) => updateCustomText('billingSectionHeading', e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -241,6 +272,93 @@ export const FormCustomTextSection: React.FC<FormCustomTextSectionProps> = ({
             className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded italic"
           />
         </div>
+
+        {/* Quotation Specific Cover & Instruction Labels */}
+        {isQuotation && (
+          <div className="pt-2 border-t border-neutral-800 space-y-2">
+            <span className="text-[10px] font-bold uppercase text-neutral-400 block">Cover Page &amp; Acceptance Labels</span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[9px] text-neutral-500 uppercase">Cover Eyebrow</label>
+                <input
+                  type="text"
+                  value={
+                    doc.customText.coverEyebrow !== undefined
+                      ? doc.customText.coverEyebrow
+                      : (doc.quotationType === 'monthly' ? 'QUOTATION · MONTHLY RETAINER' : 'QUOTATION · ONE-TIME PROJECT')
+                  }
+                  onChange={(e) => updateCustomText('coverEyebrow', e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] text-neutral-500 uppercase">Cover Title</label>
+                <input
+                  type="text"
+                  value={
+                    doc.customText.coverTitle !== undefined
+                      ? doc.customText.coverTitle
+                      : (doc.quotationType === 'monthly' ? 'MONTHLY\nRETAINER' : 'PROJECT\nQUOTATION')
+                  }
+                  onChange={(e) => updateCustomText('coverTitle', e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] text-neutral-500 uppercase">Prepared By (Name)</label>
+                <input
+                  type="text"
+                  value={
+                    doc.customText.preparedByName !== undefined
+                      ? doc.customText.preparedByName
+                      : 'Dev Rajpoot'
+                  }
+                  onChange={(e) => updateCustomText('preparedByName', e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                />
+              </div>
+              <div>
+                <label className="block text-[9px] text-neutral-500 uppercase">Prepared By (Role / Company)</label>
+                <input
+                  type="text"
+                  value={
+                    doc.customText.preparedByTitle !== undefined
+                      ? doc.customText.preparedByTitle
+                      : 'Founder & CEO, DEVRIAN'
+                  }
+                  onChange={(e) => updateCustomText('preparedByTitle', e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[9px] text-neutral-500 uppercase">Prepared By (Contact Line)</label>
+                <input
+                  type="text"
+                  value={
+                    doc.customText.preparedByContact !== undefined
+                      ? doc.customText.preparedByContact
+                      : 'inquiry@devrian.in • devrian.in'
+                  }
+                  onChange={(e) => updateCustomText('preparedByContact', e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-[9px] text-neutral-500 uppercase">Acceptance Instruction Line</label>
+                <input
+                  type="text"
+                  value={
+                    doc.customText.instructionLine !== undefined
+                      ? doc.customText.instructionLine
+                      : 'To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start.'
+                  }
+                  onChange={(e) => updateCustomText('instructionLine', e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 text-white text-xs px-2.5 py-1 rounded"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

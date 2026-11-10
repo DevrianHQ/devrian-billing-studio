@@ -98,6 +98,18 @@ export interface DocumentCustomText {
   signatureTitle: string; // "Founder, DEVRIAN"
   signatureAuditLine: string; // "Issued by DEVRIAN · [DocType] [DocNo] · [Date]"
   signatureDisclaimer: string; // "Not valid for banking, cheque or legal-instrument purposes"
+
+  // Quotation specific editable text
+  instructionLine?: string; // "To accept, confirm in writing (WhatsApp/email) or sign below, and pay the amount due to start."
+  deliverablesResetNote?: string; // "Deliverables reset at the start of each monthly billing cycle and do not roll over."
+  deliverablesSectionHeading?: string; // "WHAT'S INCLUDED EACH MONTH"
+  pricingSectionHeading?: string; // "PRICING"
+  billingSectionHeading?: string; // "BILLING & TERM"
+  coverEyebrow?: string; // "QUOTATION · ONE-TIME PROJECT" or "QUOTATION · MONTHLY RETAINER"
+  coverTitle?: string; // "PROJECT QUOTATION" or "MONTHLY RETAINER"
+  preparedByName?: string; // "Dev Rajpoot"
+  preparedByTitle?: string; // "Founder & CEO, DEVRIAN"
+  preparedByContact?: string; // "inquiry@devrian.in • devrian.in"
 }
 
 export interface MonthlyDeliverable {
