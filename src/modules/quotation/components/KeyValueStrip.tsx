@@ -22,6 +22,27 @@ export const KeyValueStrip: React.FC<KeyValueStripProps> = ({
   const cellWidth = '43.5mm';
   const rowHeight = '13mm';
 
+  const labelStyle: React.CSSProperties = {
+    fontFamily: QUOTATION_TOKENS.font.family,
+    fontSize: '7.2pt',
+    fontWeight: 600,
+    letterSpacing: '0.22em',
+    textTransform: 'uppercase',
+    color: QUOTATION_TOKENS.colors.greyLight,
+    display: 'block',
+    lineHeight: 1,
+  };
+
+  const valueStyle: React.CSSProperties = {
+    fontFamily: QUOTATION_TOKENS.font.family,
+    fontSize: '9.2pt',
+    fontWeight: 600,
+    color: QUOTATION_TOKENS.colors.black,
+    margin: 0,
+    marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
+    lineHeight: 1.25,
+  };
+
   return (
     <div
       data-section="quotation-key-value-strip"
@@ -51,95 +72,30 @@ export const KeyValueStrip: React.FC<KeyValueStripProps> = ({
         >
           {/* Col 1: BILLING CYCLE (40mm) */}
           <div style={{ width: '40mm', paddingRight: '2mm' }}>
-            <span
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
-                display: 'block',
-              }}
-            >
-              BILLING CYCLE
-            </span>
-            <p
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
-                margin: 0,
-                marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
-              }}
-            >
-              {billingCycle}
-            </p>
+            <span style={labelStyle}>BILLING CYCLE</span>
+            <p style={valueStyle}>{billingCycle}</p>
           </div>
 
           {/* Col 2: START DATE (38mm) */}
           <div style={{ width: '38mm', paddingRight: '2mm' }}>
-            <span
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
-                display: 'block',
-              }}
-            >
-              START DATE
-            </span>
-            <p
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
-                margin: 0,
-                marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
-              }}
-            >
+            <span style={labelStyle}>START DATE</span>
+            <p style={valueStyle}>
               {startDate ? formatDisplayDate(startDate) : 'Upon Agreement'}
             </p>
           </div>
 
           {/* Col 3: MINIMUM TERM (38mm) */}
           <div style={{ width: '38mm', paddingRight: '2mm' }}>
-            <span
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
-                display: 'block',
-              }}
-            >
-              MINIMUM TERM
-            </span>
-            <p
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
-                margin: 0,
-                marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
-              }}
-            >
+            <span style={labelStyle}>MINIMUM TERM</span>
+            <p style={valueStyle}>
               {minTermMonths} {minTermMonths === 1 ? 'Month' : 'Months'}
             </p>
           </div>
 
           {/* Col 4: PAYMENT DUE (58mm - extra width to prevent line wrapping) */}
           <div style={{ width: '58mm' }}>
-            <span
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
-                display: 'block',
-              }}
-            >
-              PAYMENT DUE
-            </span>
-            <p
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
-                margin: 0,
-                marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
-                lineHeight: 1.25,
-              }}
-            >
-              {paymentDue}
-            </p>
+            <span style={labelStyle}>PAYMENT DUE</span>
+            <p style={valueStyle}>{paymentDue}</p>
           </div>
         </div>
 
@@ -155,49 +111,14 @@ export const KeyValueStrip: React.FC<KeyValueStripProps> = ({
         >
           {/* Col 1: NOTICE PERIOD */}
           <div style={{ width: cellWidth, paddingRight: '2mm' }}>
-            <span
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
-                display: 'block',
-              }}
-            >
-              NOTICE PERIOD
-            </span>
-            <p
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
-                margin: 0,
-                marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
-              }}
-            >
-              {noticeDays} Days Written Notice
-            </p>
+            <span style={labelStyle}>NOTICE PERIOD</span>
+            <p style={valueStyle}>{noticeDays} Days Written Notice</p>
           </div>
 
           {/* Col 2: RENEWAL */}
           <div style={{ width: cellWidth, paddingRight: '2mm' }}>
-            <span
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.label,
-                display: 'block',
-              }}
-            >
-              RENEWAL
-            </span>
-            <p
-              style={{
-                fontFamily: QUOTATION_TOKENS.font.family,
-                ...QUOTATION_TOKENS.font.scale.valueS,
-                margin: 0,
-                marginTop: `${QUOTATION_TOKENS.spacing.num.labelToValue}mm`,
-                lineHeight: 1.2,
-              }}
-            >
-              {autoRenewal}
-            </p>
+            <span style={labelStyle}>RENEWAL</span>
+            <p style={valueStyle}>{autoRenewal}</p>
           </div>
 
           {/* Col 3: empty cell */}

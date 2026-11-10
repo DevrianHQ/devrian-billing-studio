@@ -256,27 +256,21 @@ export function measureQuotationLayout(
       fits,
     });
   } else {
-    // MONTHLY RETAINER (Exactly 2 Pages)
-    // PAGE 1: Offer and Price (HeaderBand 62mm, usable 220mm)
-    const p1MaxH = QUOTATION_TOKENS.spacing.num.page1UsableH; // 220mm
-    let p1ContentH = 0;
-
-    // MetaRow
-    p1ContentH += 11 + QUOTATION_TOKENS.spacing.num.gap5;
-
-    // PartyRow
-    p1ContentH += 16 + QUOTATION_TOKENS.spacing.num.gap5;
+    // MONTHLY RETAINER (3 Pages: Page 1 Cover, Page 2 Scope & Pricing, Page 3 Terms & Acceptance)
+    // PAGE 2: Deliverables & Pricing (SlimHeader 24mm, usable 258mm)
+    const p2MaxH = QUOTATION_TOKENS.spacing.num.page2UsableH; // 258mm
+    let p2ContentH = 0;
 
     // Deliverables ListTable ("WHAT'S INCLUDED EACH MONTH")
-    const listTableH = 9.5 + (deliverables.length * 8.5);
-    p1ContentH += listTableH + QUOTATION_TOKENS.spacing.num.gap6;
+    const listTableH = 9.5 + (deliverables.length * 8.5) + 4;
+    p2ContentH += listTableH + QUOTATION_TOKENS.spacing.num.gap4;
 
     // Pricing Table ("PRICING")
     const pricingRowsH = items.reduce((sum, item) => {
       const hasSub = Boolean(item.subDescription && item.subDescription.trim());
       return sum + (hasSub ? 11 : 9.5);
     }, 0);
-    p1ContentH += 9.5 + pricingRowsH + QUOTATION_TOKENS.spacing.num.gap6;
+    p2ContentH += 9.5 + pricingRowsH + QUOTATION_TOKENS.spacing.num.gap4;
 
     // SummaryBlock (right-aligned)
     const setupRow = (doc.quotationType === 'hybrid' || items.some(i => i.billing === 'one_time')) ? 6 : 0;
@@ -284,57 +278,7 @@ export function measureQuotationLayout(
     const discountRow = (doc.discountAmount && doc.discountAmount > 0) ? 6 : 0;
     const totalBarH = 11;
     const quietRows = 14;
-    p1ContentH += setupRow + monthlyRow + discountRow + totalBarH + quietRows;
-
-    const p1Overflow = Math.max(0, Math.round(p1ContentH - p1MaxH));
-    const p1Spare = Math.max(0, Math.round(p1MaxH - p1ContentH));
-
-    pages.push({
-      pageNumber: 1,
-      contentHeightMm: Math.round(p1ContentH),
-      maxHeightMm: p1MaxH,
-      overflowMm: p1Overflow,
-      spareMm: p1Spare,
-      fits: p1Overflow === 0,
-    });
-
-    // PAGE 2: Terms and Acceptance (SlimHeader 16mm, usable 266mm)
-    const p2MaxH = QUOTATION_TOKENS.spacing.num.page2UsableH; // 266mm
-    let p2ContentH = 0;
-
-    // KeyValueStrip ("BILLING & TERM")
-    p2ContentH += 25 + QUOTATION_TOKENS.spacing.num.gap5;
-
-    // PaymentBox (Full Width)
-    const showQr = doc.sectionVisibility.showUpiQr || template.paymentToggles.showQr;
-    p2ContentH += (showQr ? 32 : 28) + QUOTATION_TOKENS.spacing.num.gap5;
-
-    // GST Line
-    if (doc.sectionVisibility.showGstLine ?? template.visibility.showGstLine) {
-      p2ContentH += 4 + QUOTATION_TOKENS.spacing.num.gap5;
-    }
-
-    // NoteBox ("TERMS & NOTES")
-    if (doc.sectionVisibility.showTermsAndNotes ?? template.visibility.showTermsAndNotes) {
-      const termsH = terms.reduce((sum, note) => {
-        const estLines = Math.ceil(note.length / 105);
-        return sum + (estLines * 4.2) + 1.2;
-      }, 0);
-      p2ContentH += 6 + termsH + QUOTATION_TOKENS.spacing.num.gap5;
-    }
-
-    // Acceptance (Instruction + SignaturePair)
-    if (doc.sectionVisibility.showAcceptance ?? template.visibility.showAcceptance) {
-      const instructionH = 4.5;
-      const pairH = 26;
-      const auditDisclaimerH = 4.5;
-      p2ContentH += instructionH + pairH + auditDisclaimerH + QUOTATION_TOKENS.spacing.num.gap5;
-    }
-
-    // ClosingLine
-    if (doc.sectionVisibility.showClosingLine ?? template.visibility.showClosingLine) {
-      p2ContentH += 4.5;
-    }
+    p2ContentH += setupRow + monthlyRow + discountRow + totalBarH + quietRows;
 
     const p2Overflow = Math.max(0, Math.round(p2ContentH - p2MaxH));
     const p2Spare = Math.max(0, Math.round(p2MaxH - p2ContentH));
@@ -346,6 +290,56 @@ export function measureQuotationLayout(
       overflowMm: p2Overflow,
       spareMm: p2Spare,
       fits: p2Overflow === 0,
+    });
+
+    // PAGE 3: Terms and Acceptance (SlimHeader 24mm, usable 258mm)
+    const p3MaxH = QUOTATION_TOKENS.spacing.num.page2UsableH; // 258mm
+    let p3ContentH = 0;
+
+    // KeyValueStrip ("BILLING & TERM")
+    p3ContentH += 26 + QUOTATION_TOKENS.spacing.num.gap4;
+
+    // PaymentBox (Full Width 174mm)
+    const showQr = doc.sectionVisibility.showUpiQr || template.paymentToggles.showQr;
+    p3ContentH += (showQr ? 32 : 28) + QUOTATION_TOKENS.spacing.num.gap4;
+
+    // GST Line
+    if (doc.sectionVisibility.showGstLine ?? template.visibility.showGstLine) {
+      p3ContentH += 4 + QUOTATION_TOKENS.spacing.num.gap4;
+    }
+
+    // NoteBox ("TERMS & NOTES")
+    if (doc.sectionVisibility.showTermsAndNotes ?? template.visibility.showTermsAndNotes) {
+      const termsH = terms.reduce((sum, note) => {
+        const estLines = Math.ceil(note.length / 105);
+        return sum + (estLines * 4.2) + 1.2;
+      }, 0);
+      p3ContentH += 6 + termsH + QUOTATION_TOKENS.spacing.num.gap4;
+    }
+
+    // Acceptance (Instruction + SignaturePair)
+    if (doc.sectionVisibility.showAcceptance ?? template.visibility.showAcceptance) {
+      const instructionH = 4.5;
+      const pairH = QUOTATION_TOKENS.spacing.num.signaturePairMonthlyH;
+      const auditDisclaimerH = 4.5;
+      p3ContentH += instructionH + pairH + auditDisclaimerH + QUOTATION_TOKENS.spacing.num.gap4;
+    }
+
+    // ClosingLine
+    if (doc.sectionVisibility.showClosingLine ?? template.visibility.showClosingLine) {
+      p3ContentH += 4.5;
+    }
+
+    const p3Overflow = Math.max(0, Math.round(p3ContentH - p3MaxH));
+    const p3Spare = Math.max(0, Math.round(p3MaxH - p3ContentH));
+
+    pages.push({
+      pageNumber: 3,
+      contentHeightMm: Math.round(p3ContentH),
+      maxHeightMm: p3MaxH,
+      overflowMm: p3Overflow,
+      spareMm: p3Spare,
+      fits: p3Overflow === 0,
     });
   }
 
